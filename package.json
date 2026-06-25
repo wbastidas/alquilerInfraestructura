@@ -1,0 +1,13 @@
+{
+  "name": "sgaie",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Sistema de Gestión de Arriendo de Infraestructura Eléctrica (SGAIE) - CNEL EP",
+  "scripts": {
+    "dev:frontend": "pnpm --filter sgaie-frontend dev",
+    "build:frontend": "pnpm --filter sgaie-frontend build",
+    "lint:frontend": "pnpm --filter sgaie-frontend lint",
+    "dev:backend": "cd backend && uvicorn app.main:app --reload",
+    "test:backend": "cd backend && pytest"
+  }
+}

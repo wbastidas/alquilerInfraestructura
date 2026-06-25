@@ -1,0 +1,35 @@
+# Python
+__pycache__/
+*.py[cod]
+*.egg-info/
+.venv/
+venv/
+.mypy_cache/
+.ruff_cache/
+.pytest_cache/
+*.db
+
+# Node
+node_modules/
+dist/
+.vite/
+
+# Env / secretos
+.env
+.env.*
+!.env.example
+
+# Documentos subidos (no versionar archivos reales de usuarios)
+backend/uploads/
+infra/plantillas/*.docx
+infra/plantillas/*.dotx
+!infra/plantillas/.gitkeep
+
+# Editor / OS
+.vscode/
+.idea/
+.DS_Store
+Thumbs.db
+
+# Logs
+*.log
