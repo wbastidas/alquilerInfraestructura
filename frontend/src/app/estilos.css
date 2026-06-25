@@ -1,0 +1,175 @@
+:root {
+  font-family: system-ui, -apple-system, "Segoe UI", sans-serif;
+  color-scheme: light;
+}
+
+body {
+  margin: 0;
+  background-color: #f4f6f8;
+  color: #1a1a1a;
+}
+
+.pagina-login {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 100vh;
+}
+
+.tarjeta-login {
+  background: white;
+  padding: 2.5rem;
+  border-radius: 8px;
+  box-shadow: 0 2px 12px rgba(0, 0, 0, 0.08);
+  width: 360px;
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.tarjeta-login h1 {
+  margin: 0;
+  color: #00477f;
+}
+
+.subtitulo {
+  margin: 0 0 1rem;
+  font-size: 0.85rem;
+  color: #555;
+}
+
+.selector-modo {
+  display: flex;
+  gap: 0.25rem;
+  margin-bottom: 1rem;
+}
+
+.selector-modo button {
+  flex: 1;
+  padding: 0.4rem;
+  font-size: 0.75rem;
+  border: 1px solid #ccc;
+  background: #f0f0f0;
+  cursor: pointer;
+}
+
+.selector-modo button.activo {
+  background: #00477f;
+  color: white;
+  border-color: #00477f;
+}
+
+.tarjeta-login label {
+  font-size: 0.8rem;
+  margin-top: 0.5rem;
+}
+
+.tarjeta-login input,
+.formulario input,
+.formulario select {
+  padding: 0.5rem;
+  border: 1px solid #ccc;
+  border-radius: 4px;
+}
+
+.tarjeta-login button[type="submit"],
+.formulario button[type="submit"],
+.boton-primario {
+  margin-top: 1rem;
+  padding: 0.6rem;
+  background: #00477f;
+  color: white;
+  border: none;
+  border-radius: 4px;
+  cursor: pointer;
+  text-decoration: none;
+  text-align: center;
+}
+
+.mensaje-error {
+  color: #c0392b;
+  font-size: 0.85rem;
+}
+
+.diseno-app {
+  display: flex;
+  flex-direction: column;
+  min-height: 100vh;
+}
+
+.cabecera {
+  display: flex;
+  align-items: center;
+  gap: 2rem;
+  padding: 0.75rem 1.5rem;
+  background: #00477f;
+  color: white;
+}
+
+.cabecera nav {
+  display: flex;
+  gap: 1rem;
+  flex: 1;
+}
+
+.cabecera nav a {
+  color: white;
+  text-decoration: none;
+  opacity: 0.85;
+}
+
+.cabecera nav a.active {
+  opacity: 1;
+  font-weight: 600;
+  border-bottom: 2px solid white;
+}
+
+.usuario-actual {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  font-size: 0.85rem;
+}
+
+.insignia-solo-lectura {
+  background: #f39c12;
+  color: #1a1a1a;
+  padding: 0.2rem 0.5rem;
+  border-radius: 4px;
+  font-size: 0.7rem;
+}
+
+.contenido {
+  flex: 1;
+  padding: 1.5rem;
+}
+
+.encabezado-seccion {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 1rem;
+}
+
+.tabla {
+  width: 100%;
+  border-collapse: collapse;
+  background: white;
+}
+
+.tabla th,
+.tabla td {
+  text-align: left;
+  padding: 0.5rem 0.75rem;
+  border-bottom: 1px solid #e0e0e0;
+}
+
+.formulario {
+  display: flex;
+  flex-direction: column;
+  gap: 0.4rem;
+  max-width: 420px;
+  background: white;
+  padding: 1.5rem;
+  border-radius: 8px;
+}
