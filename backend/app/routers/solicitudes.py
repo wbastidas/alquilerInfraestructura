@@ -6,7 +6,9 @@ from sqlalchemy.orm import Session
 from app.auth.deps import UsuarioContexto, obtener_usuario_actual, requerir_escritura
 from app.db.session import obtener_db
 from app.schemas.autorizacion import AutorizacionDecision, AutorizacionRespuesta
+from app.schemas.documento import ChecklistItemRespuesta, DocumentoRespuesta
 from app.schemas.solicitud import SolicitudActualizar, SolicitudCrear, SolicitudRespuesta
+from app.services import documento as documento_servicio
 from app.services import solicitud as servicio
 
 router = APIRouter(prefix="/solicitudes", tags=["solicitudes"])
@@ -82,3 +84,21 @@ def reenviar(
     usuario: UsuarioContexto = Depends(requerir_escritura),
 ):
     return servicio.reenviar(db, solicitud_id, usuario)
+
+
+@router.get("/{solicitud_id}/documentos", response_model=list[DocumentoRespuesta])
+def listar_documentos(
+    solicitud_id: int,
+    db: Session = Depends(obtener_db),
+    usuario: UsuarioContexto = Depends(obtener_usuario_actual),
+):
+    return documento_servicio.listar_por_solicitud(db, solicitud_id, usuario)
+
+
+@router.get("/{solicitud_id}/checklist", response_model=list[ChecklistItemRespuesta])
+def obtener_checklist(
+    solicitud_id: int,
+    db: Session = Depends(obtener_db),
+    usuario: UsuarioContexto = Depends(obtener_usuario_actual),
+):
+    return documento_servicio.obtener_checklist(db, solicitud_id, usuario)

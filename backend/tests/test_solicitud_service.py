@@ -4,6 +4,8 @@ enrutamiento, y motor de autorizaciones multinivel."""
 import pytest
 from sqlalchemy.orm import Session
 
+from app.auth.deps import UsuarioContexto
+from app.core.checklist import TIPOS_CHECKLIST_SOLICITUD
 from app.core.exceptions import PermisoDenegado, TransicionInvalida
 from app.models.cable_operadora import CableOperadora
 from app.models.contrato import Contrato
@@ -13,13 +15,16 @@ from app.models.enums import (
     EstadoAutorizacion,
     EstadoContrato,
     EstadoSolicitud,
+    EstadoValidacionDocumento,
     TipoSolicitud,
 )
 from app.models.rol import Rol
 from app.models.unidad_negocio import UnidadNegocio
 from app.models.usuario import Usuario
 from app.schemas.autorizacion import AutorizacionDecision
+from app.schemas.documento import DocumentoValidar
 from app.schemas.solicitud import ContactoSolicitudCrear, RutaPropuestaCrear, SolicitudCrear
+from app.services import documento as documento_servicio
 from app.services import solicitud as servicio
 
 from tests.conftest import contexto_de
@@ -76,6 +81,36 @@ def _datos_solicitud(
         ],
         contactos=[ContactoSolicitudCrear(rol_contacto="Representante legal", nombre="Ana Pérez")],
     )
+
+
+class _ArchivoFalso:
+    def __init__(self, filename: str, content_type: str):
+        self.filename = filename
+        self.content_type = content_type
+
+
+def _completar_checklist(
+    db_session: Session,
+    solicitud_id: int,
+    usuario_prov: UsuarioContexto,
+    usuario_interno: UsuarioContexto,
+) -> None:
+    """Sube y valida los §11 documentos requeridos para superar la compuerta documental."""
+    for tipo in TIPOS_CHECKLIST_SOLICITUD:
+        documento = documento_servicio.subir_para_solicitud(
+            db_session,
+            solicitud_id,
+            tipo,
+            _ArchivoFalso(f"{tipo.value.lower()}.pdf", "application/pdf"),
+            b"contenido",
+            usuario_prov,
+        )
+        documento_servicio.validar(
+            db_session,
+            documento.id,
+            DocumentoValidar(estado_validacion=EstadoValidacionDocumento.VALIDADO),
+            usuario_interno,
+        )
 
 
 def test_proveedor_crea_solicitud_nuevo_contrato_en_borrador(
@@ -207,6 +242,7 @@ def test_workflow_nuevo_contrato_recorre_todas_las_etapas_hasta_finalizada(
     rol_proveedor: Rol,
     rol_un: Rol,
     usuario_local: Usuario,
+    directorio_documentos,
 ):
     operadora = _crear_operadora(db_session, unidad_negocio_a.id)
     proveedor = _crear_usuario_proveedor(db_session, rol_proveedor, operadora.id)
@@ -215,6 +251,7 @@ def test_workflow_nuevo_contrato_recorre_todas_las_etapas_hasta_finalizada(
 
     solicitud = servicio.crear(db_session, _datos_solicitud(operadora.id), proveedor_ctx)
     servicio.enviar(db_session, solicitud.id, proveedor_ctx)
+    _completar_checklist(db_session, solicitud.id, proveedor_ctx, interno_ctx)
 
     estados_esperados = [
         EstadoSolicitud.REVISION_TECNICA,
@@ -243,6 +280,7 @@ def test_workflow_ampliacion_omite_revision_juridica(
     rol_proveedor: Rol,
     rol_un: Rol,
     usuario_local: Usuario,
+    directorio_documentos,
 ):
     operadora = _crear_operadora(db_session, unidad_negocio_a.id)
     contrato = Contrato(
@@ -266,6 +304,7 @@ def test_workflow_ampliacion_omite_revision_juridica(
     )
     assert solicitud.dirigida_a == DirigidaA.ADMIN_CONTRATO
     servicio.enviar(db_session, solicitud.id, proveedor_ctx)
+    _completar_checklist(db_session, solicitud.id, proveedor_ctx, interno_ctx)
 
     for _ in range(
         3
