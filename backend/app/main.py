@@ -8,9 +8,16 @@ from slowapi import _rate_limit_exceeded_handler
 from slowapi.errors import RateLimitExceeded
 
 from app.core.config import obtener_configuracion
-from app.core.exceptions import PermisoDenegado, RecursoNoEncontrado, TransicionInvalida
+from app.core.exceptions import (
+    PermisoDenegado,
+    RecursoDuplicado,
+    RecursoNoEncontrado,
+    TransicionInvalida,
+)
+from app.jobs.scheduler import crear_scheduler
 from app.middlewares.rate_limit import limiter
 from app.middlewares.security_headers import CabecerasSeguridadMiddleware
+from app.routers import alquileres_anuales as alquileres_anuales_router
 from app.routers import auth as auth_router
 from app.routers import catalogo_canon as catalogo_canon_router
 from app.routers import contratos as contratos_router
@@ -47,6 +54,11 @@ def _manejar_transicion_invalida(request: Request, exc: TransicionInvalida) -> J
     return JSONResponse(status_code=409, content={"detail": str(exc)})
 
 
+@app.exception_handler(RecursoDuplicado)
+def _manejar_recurso_duplicado(request: Request, exc: RecursoDuplicado) -> JSONResponse:
+    return JSONResponse(status_code=409, content={"detail": str(exc)})
+
+
 @app.exception_handler(ValueError)
 def _manejar_value_error(request: Request, exc: ValueError) -> JSONResponse:
     return JSONResponse(status_code=400, content={"detail": str(exc)})
@@ -70,8 +82,23 @@ app.include_router(usuarios_router.router, prefix=PREFIJO_API)
 app.include_router(operadoras_router.router, prefix=PREFIJO_API)
 app.include_router(contratos_router.router, prefix=PREFIJO_API)
 app.include_router(catalogo_canon_router.router, prefix=PREFIJO_API)
+app.include_router(alquileres_anuales_router.router, prefix=PREFIJO_API)
 
 
 @app.get("/api/v1/salud", tags=["salud"])
 def salud() -> dict[str, str]:
     return {"estado": "ok"}
+
+
+# Job de auto-generación anual (§7.2): un BackgroundScheduler en proceso, con
+# fallback documentado a Programador de tareas de Windows (§3.3) si el backend
+# no corre 24/7.
+@app.on_event("startup")
+def _iniciar_scheduler() -> None:
+    app.state.scheduler = crear_scheduler()
+    app.state.scheduler.start()
+
+
+@app.on_event("shutdown")
+def _detener_scheduler() -> None:
+    app.state.scheduler.shutdown(wait=False)
