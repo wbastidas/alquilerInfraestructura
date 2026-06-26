@@ -77,6 +77,14 @@ def rol_un(db_session: Session) -> Rol:
 
 
 @pytest.fixture()
+def rol_proveedor(db_session: Session) -> Rol:
+    rol = Rol(codigo="PROVEEDOR", nombre="Proveedor")
+    db_session.add(rol)
+    db_session.commit()
+    return rol
+
+
+@pytest.fixture()
 def usuario_local(db_session: Session, rol_un: Rol, unidad_negocio_a: UnidadNegocio) -> Usuario:
     usuario = Usuario(
         username="un_a_user",
@@ -100,6 +108,7 @@ def contexto_de(usuario: Usuario, rol: Rol) -> UsuarioContexto:
         rol=rol.codigo,
         unidad_negocio_id=usuario.unidad_negocio_id,
         tipo_cuenta=usuario.tipo_cuenta.value,
+        cable_operadora_id=usuario.cable_operadora_id,
     )
 
 

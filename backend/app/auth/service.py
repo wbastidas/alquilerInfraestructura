@@ -1,4 +1,5 @@
 """Servicio de autenticación: doble vía (local/AD) + emisión, refresco y revocación de JWT (§5.1, §4.1)."""
+
 from datetime import datetime, timezone
 
 from sqlalchemy import select
@@ -27,12 +28,11 @@ def _emitir_tokens(db: Session, usuario: Usuario) -> TokenResponse:
         rol=rol.codigo,
         unidad_negocio_id=usuario.unidad_negocio_id,
         tipo_cuenta=usuario.tipo_cuenta.value,
+        cable_operadora_id=usuario.cable_operadora_id,
     )
     refresh_token, jti, expiracion = crear_token_refresco(usuario_id=usuario.id)
     db.add(
-        TokenRefrescoRevocado(
-            jti=jti, usuario_id=usuario.id, expira_en=expiracion, revocado=False
-        )
+        TokenRefrescoRevocado(jti=jti, usuario_id=usuario.id, expira_en=expiracion, revocado=False)
     )
     usuario.ultimo_acceso = datetime.now(timezone.utc)
     db.commit()
