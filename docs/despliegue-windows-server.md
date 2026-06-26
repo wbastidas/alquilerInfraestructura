@@ -168,19 +168,33 @@ React Router resueltas contra `index.html`).
 4. Ejecutar Nginx como servicio de Windows (NSSM, igual que el backend) o
    con el *Task Scheduler* en inicio del sistema.
 
-## 8. Tareas programadas (pendiente — Fase 4)
+## 8. Tareas programadas
 
-La especificación (§3.3, §13) prevé un job programado cada 1 de enero para
-generar los registros anuales de `AlquilerAnual`/`PostePorZona`, ejecutado
-in-process con **APScheduler** o, como respaldo, disparado por el
-**Programador de tareas de Windows** contra un comando CLI
-(`python -m app.jobs generar_anios`).
+La especificación (§3.3, §7.2) define un job programado cada 1 de enero que
+recorre las operadoras con contrato vigente y crea su `AlquilerAnual` del
+nuevo año (clonando la estructura de `PostePorZona` del año anterior con
+montos en cero), generando además una `Alerta` de facturación pendiente y un
+registro en `LogAuditoria`. El job es **idempotente**: si el año ya fue
+generado para una operadora, no lo duplica.
 
-> `apscheduler` ya está declarado como dependencia del backend
-> (`pyproject.toml`), pero el módulo `app/jobs/` y los modelos/servicios de
-> `AlquilerAnual` (Fase 4 de la especificación) aún no están implementados
-> en este repositorio. Este paso debe documentarse y configurarse cuando
-> esa fase se desarrolle; no hay nada que instalar todavía.
+Dos formas de ejecutarlo, ambas ya implementadas en este repositorio:
+
+1. **In-process con APScheduler (predeterminado)**: `app/jobs/scheduler.py`
+   registra un `BackgroundScheduler` que arranca junto con el backend
+   (evento `startup` de FastAPI, ver `app/main.py`) y dispara el job todos
+   los 1 de enero a las 00:05 (zona horaria `America/Guayaquil`). No requiere
+   configuración adicional: funciona mientras el servicio NSSM del backend
+   esté corriendo.
+2. **Respaldo vía Programador de tareas de Windows**: si el backend no corre
+   24/7 (p. ej. se reinicia por mantenimiento justo el 1 de enero), programar
+   una tarea que ejecute:
+
+   ```powershell
+   C:\sgaie\backend\venv\Scripts\python.exe -m app.jobs.cli_generacion_anual
+   ```
+
+   con disparador anual el 1 de enero. Al ser idempotente, ejecutar ambos
+   mecanismos el mismo día no genera duplicados.
 
 ## 9. Verificación post-instalación
 

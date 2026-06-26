@@ -5,6 +5,7 @@ Primitivas de seguridad transversales (§4 de la especificación):
 - Emisión y verificación de JWT (access + refresh).
 - Cifrado AES-256-GCM a nivel de aplicación para campos sensibles (🔒 en §6).
 """
+
 import base64
 import os
 import uuid
@@ -39,7 +40,13 @@ def _clave_secreta() -> str:
 
 
 def crear_token_acceso(
-    *, usuario_id: int, username: str, rol: str, unidad_negocio_id: int | None, tipo_cuenta: str
+    *,
+    usuario_id: int,
+    username: str,
+    rol: str,
+    unidad_negocio_id: int | None,
+    tipo_cuenta: str,
+    cable_operadora_id: int | None = None,
 ) -> str:
     config = obtener_configuracion()
     ahora = datetime.now(timezone.utc)
@@ -49,6 +56,7 @@ def crear_token_acceso(
         "rol": rol,
         "unidad_negocio_id": unidad_negocio_id,
         "tipo_cuenta": tipo_cuenta,
+        "cable_operadora_id": cable_operadora_id,
         "tipo_token": TipoToken.ACCESO.value,
         "iat": ahora,
         "exp": ahora + timedelta(minutes=config.jwt_access_token_minutos),

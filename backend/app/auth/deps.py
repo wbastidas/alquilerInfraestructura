@@ -5,6 +5,7 @@ Regla de oro reforzada en backend (no solo UI):
 - Unidad de Negocio (`UN_*`) = lectura/escritura de su propia UN.
 - Proveedor (`PROVEEDOR`) = lectura/escritura de su propio expediente.
 """
+
 from dataclasses import dataclass
 
 import jwt
@@ -25,6 +26,7 @@ class UsuarioContexto:
     rol: str
     unidad_negocio_id: int | None
     tipo_cuenta: str
+    cable_operadora_id: int | None = None
 
     @property
     def es_matriz_o_superadmin(self) -> bool:
@@ -61,6 +63,7 @@ def obtener_usuario_actual(
         rol=payload["rol"],
         unidad_negocio_id=payload.get("unidad_negocio_id"),
         tipo_cuenta=payload["tipo_cuenta"],
+        cable_operadora_id=payload.get("cable_operadora_id"),
     )
 
 

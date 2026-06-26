@@ -27,3 +27,7 @@ class RecursoNoEncontrado(ErrorAplicacion):
 
 class TransicionInvalida(ErrorAplicacion):
     """Transición de estado no permitida (p. ej. estados de Contrato, §7.1)."""
+
+
+class RecursoDuplicado(ErrorAplicacion):
+    """Violación de una restricción de unicidad de negocio (p. ej. AlquilerAnual por año, §6.6)."""
