@@ -170,31 +170,38 @@ React Router resueltas contra `index.html`).
 
 ## 8. Tareas programadas
 
-La especificación (§3.3, §7.2) define un job programado cada 1 de enero que
-recorre las operadoras con contrato vigente y crea su `AlquilerAnual` del
-nuevo año (clonando la estructura de `PostePorZona` del año anterior con
-montos en cero), generando además una `Alerta` de facturación pendiente y un
-registro en `LogAuditoria`. El job es **idempotente**: si el año ya fue
-generado para una operadora, no lo duplica.
+La especificación (§3.3, §6.14, §7.2, §7.4) define tres jobs programados, todos
+**idempotentes** (ejecutarlos más de una vez el mismo día no genera
+duplicados):
 
-Dos formas de ejecutarlo, ambas ya implementadas en este repositorio:
+| Job | Frecuencia (APScheduler) | Qué hace |
+|---|---|---|
+| Generación anual de alquileres | 1 de enero, 00:05 | Recorre las operadoras con contrato vigente y crea su `AlquilerAnual` del nuevo año (clonando `PostePorZona` del año anterior con montos en cero), genera una `Alerta` de facturación pendiente y un registro en `LogAuditoria`. |
+| Detección de morosidad | Diario, 01:00 | Marca como `VENCIDA` las facturas cuya fecha de vencimiento ya pasó y genera la `Alerta` de morosidad correspondiente (§7.4). |
+| Detección de vencimientos próximos | Diario, 02:00 | Genera una `Alerta` de vencimiento de contrato, póliza de garantía o título habilitante cuando la fecha real cae dentro de la ventana de anticipación configurada (`dias_anticipacion_alerta_vencimiento`, §6.14). |
+
+Dos formas de ejecutarlos, ambas ya implementadas en este repositorio:
 
 1. **In-process con APScheduler (predeterminado)**: `app/jobs/scheduler.py`
-   registra un `BackgroundScheduler` que arranca junto con el backend
-   (evento `startup` de FastAPI, ver `app/main.py`) y dispara el job todos
-   los 1 de enero a las 00:05 (zona horaria `America/Guayaquil`). No requiere
-   configuración adicional: funciona mientras el servicio NSSM del backend
-   esté corriendo.
+   registra un `BackgroundScheduler` que arranca junto con el backend (evento
+   `startup` de FastAPI, ver `app/main.py`) y dispara los tres jobs en los
+   horarios de la tabla anterior (zona horaria `America/Guayaquil`). No
+   requiere configuración adicional: funciona mientras el servicio NSSM del
+   backend esté corriendo.
 2. **Respaldo vía Programador de tareas de Windows**: si el backend no corre
-   24/7 (p. ej. se reinicia por mantenimiento justo el 1 de enero), programar
-   una tarea que ejecute:
+   24/7 (p. ej. se reinicia por mantenimiento justo cuando debía disparar
+   alguno de los jobs), programar tareas equivalentes que ejecuten:
 
    ```powershell
    C:\sgaie\backend\venv\Scripts\python.exe -m app.jobs.cli_generacion_anual
+   C:\sgaie\backend\venv\Scripts\python.exe -m app.jobs.cli_morosidad
+   C:\sgaie\backend\venv\Scripts\python.exe -m app.jobs.cli_vencimientos
    ```
 
-   con disparador anual el 1 de enero. Al ser idempotente, ejecutar ambos
-   mecanismos el mismo día no genera duplicados.
+   con disparadores: anual el 1 de enero para `cli_generacion_anual`, y
+   diario para `cli_morosidad` y `cli_vencimientos`. Al ser idempotentes,
+   ejecutar ambos mecanismos (in-process y Task Scheduler) el mismo día no
+   genera duplicados.
 
 ## 9. Verificación post-instalación
 

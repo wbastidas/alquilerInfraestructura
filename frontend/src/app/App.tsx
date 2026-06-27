@@ -5,6 +5,7 @@ import { AuthProvider } from "@/auth/AuthContext";
 import { PaginaLogin } from "@/auth/PaginaLogin";
 import { RutaProtegida } from "@/auth/RutaProtegida";
 import { Layout } from "@/components/Layout";
+import { ListaAlertas } from "@/features/alertas/ListaAlertas";
 import { ListaContratos } from "@/features/contratos/ListaContratos";
 import { FormularioOperadora } from "@/features/operadoras/FormularioOperadora";
 import { ListaOperadoras } from "@/features/operadoras/ListaOperadoras";
@@ -25,6 +26,7 @@ export function App() {
                 <Route path="/operadoras" element={<ListaOperadoras />} />
                 <Route path="/operadoras/nueva" element={<FormularioOperadora />} />
                 <Route path="/contratos" element={<ListaContratos />} />
+                <Route path="/alertas" element={<ListaAlertas />} />
               </Route>
             </Route>
           </Routes>

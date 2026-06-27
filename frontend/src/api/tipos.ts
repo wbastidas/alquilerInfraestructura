@@ -139,6 +139,40 @@ export interface ContratoActualizar {
   canon_anual_total?: string;
 }
 
+export type TipoAlerta =
+  | "VENCIMIENTO_CONTRATO"
+  | "VENCIMIENTO_POLIZA"
+  | "MOROSIDAD"
+  | "VENCIMIENTO_TITULO"
+  | "SIG_ANUAL_PENDIENTE";
+
+export type SeveridadAlerta = "INFO" | "ADVERTENCIA" | "CRITICA";
+
+export interface Alerta {
+  id: number;
+  tipo: TipoAlerta;
+  entidad_tipo: string;
+  entidad_id: number;
+  unidad_negocio_id: number | null;
+  mensaje: string;
+  severidad: SeveridadAlerta;
+  fecha_generacion: string;
+  leida: boolean;
+}
+
+export interface DashboardConsolidado {
+  anio: number;
+  total_operadoras: number;
+  total_contratos_vigentes: number;
+  monto_facturado: string;
+  monto_recaudado: string;
+  monto_pendiente_recaudar: string;
+  solicitudes_pendientes: number;
+  novedades_abiertas: number;
+  facturas_vencidas: number;
+  alertas_no_leidas: number;
+}
+
 export interface Usuario {
   id: number;
   username: string;

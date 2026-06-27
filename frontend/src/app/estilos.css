@@ -173,3 +173,58 @@ body {
   padding: 1.5rem;
   border-radius: 8px;
 }
+
+.rejilla-tarjetas {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+  gap: 1rem;
+  margin-top: 1rem;
+}
+
+.tarjeta-metrica {
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
+  background: white;
+  border-radius: 8px;
+  padding: 1rem 1.25rem;
+  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.06);
+}
+
+.tarjeta-metrica-alerta {
+  border-left: 4px solid #c0392b;
+}
+
+.etiqueta-metrica {
+  font-size: 0.75rem;
+  color: #555;
+}
+
+.valor-metrica {
+  font-size: 1.6rem;
+  font-weight: 600;
+  color: #00477f;
+}
+
+.fila-no-leida {
+  font-weight: 600;
+}
+
+.insignia-severidad {
+  padding: 0.15rem 0.5rem;
+  border-radius: 4px;
+  font-size: 0.75rem;
+  color: white;
+}
+
+.insignia-severidad-info {
+  background: #2980b9;
+}
+
+.insignia-severidad-advertencia {
+  background: #f39c12;
+}
+
+.insignia-severidad-critica {
+  background: #c0392b;
+}
