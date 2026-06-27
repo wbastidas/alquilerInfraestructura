@@ -22,6 +22,7 @@ from app.routers import auth as auth_router
 from app.routers import catalogo_canon as catalogo_canon_router
 from app.routers import contratos as contratos_router
 from app.routers import documentos as documentos_router
+from app.routers import novedades as novedades_router
 from app.routers import operadoras as operadoras_router
 from app.routers import pagos as pagos_router
 from app.routers import solicitudes as solicitudes_router
@@ -89,6 +90,7 @@ app.include_router(alquileres_anuales_router.router, prefix=PREFIJO_API)
 app.include_router(solicitudes_router.router, prefix=PREFIJO_API)
 app.include_router(documentos_router.router, prefix=PREFIJO_API)
 app.include_router(pagos_router.router, prefix=PREFIJO_API)
+app.include_router(novedades_router.router, prefix=PREFIJO_API)
 
 
 @app.get("/api/v1/salud", tags=["salud"])
