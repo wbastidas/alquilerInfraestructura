@@ -185,3 +185,29 @@ export interface Usuario {
   activo: boolean;
   ultimo_acceso: string | null;
 }
+
+export interface UsuarioCrear {
+  username: string;
+  nombre_completo: string;
+  correo: string;
+  rol_id: number;
+  unidad_negocio_id?: number | null;
+  cable_operadora_id?: number | null;
+  tipo_cuenta: TipoCuenta;
+  password?: string | null;
+}
+
+export interface UsuarioActualizar {
+  nombre_completo?: string;
+  correo?: string;
+  rol_id?: number;
+  unidad_negocio_id?: number | null;
+  activo?: boolean;
+}
+
+export interface Rol {
+  id: number;
+  codigo: string;
+  nombre: string;
+  descripcion: string | null;
+}

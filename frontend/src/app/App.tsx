@@ -10,6 +10,8 @@ import { ListaContratos } from "@/features/contratos/ListaContratos";
 import { FormularioOperadora } from "@/features/operadoras/FormularioOperadora";
 import { ListaOperadoras } from "@/features/operadoras/ListaOperadoras";
 import { PaginaPanel } from "@/features/panel/PaginaPanel";
+import { FormularioUsuario } from "@/features/usuarios/FormularioUsuario";
+import { ListaUsuarios } from "@/features/usuarios/ListaUsuarios";
 
 const queryClient = new QueryClient();
 
@@ -27,6 +29,8 @@ export function App() {
                 <Route path="/operadoras/nueva" element={<FormularioOperadora />} />
                 <Route path="/contratos" element={<ListaContratos />} />
                 <Route path="/alertas" element={<ListaAlertas />} />
+                <Route path="/usuarios" element={<ListaUsuarios />} />
+                <Route path="/usuarios/nuevo" element={<FormularioUsuario />} />
               </Route>
             </Route>
           </Routes>

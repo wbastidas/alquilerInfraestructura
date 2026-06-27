@@ -19,6 +19,7 @@ export function Layout() {
           <NavLink to="/operadoras">Operadoras</NavLink>
           <NavLink to="/contratos">Contratos</NavLink>
           {!esProveedor && <NavLink to="/alertas">Alertas</NavLink>}
+          {!esProveedor && <NavLink to="/usuarios">Usuarios</NavLink>}
         </nav>
         <div className="usuario-actual">
           {esSoloLectura && <span className="insignia-solo-lectura">Solo lectura (Matriz)</span>}

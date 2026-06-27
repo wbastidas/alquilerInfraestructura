@@ -27,6 +27,7 @@ from app.routers import documentos as documentos_router
 from app.routers import novedades as novedades_router
 from app.routers import operadoras as operadoras_router
 from app.routers import pagos as pagos_router
+from app.routers import roles as roles_router
 from app.routers import solicitudes as solicitudes_router
 from app.routers import unidades_negocio as unidades_negocio_router
 from app.routers import usuarios as usuarios_router
@@ -85,6 +86,7 @@ PREFIJO_API = "/api/v1"
 app.include_router(auth_router.router, prefix=PREFIJO_API)
 app.include_router(alertas_router.router, prefix=PREFIJO_API)
 app.include_router(unidades_negocio_router.router, prefix=PREFIJO_API)
+app.include_router(roles_router.router, prefix=PREFIJO_API)
 app.include_router(usuarios_router.router, prefix=PREFIJO_API)
 app.include_router(operadoras_router.router, prefix=PREFIJO_API)
 app.include_router(contratos_router.router, prefix=PREFIJO_API)
