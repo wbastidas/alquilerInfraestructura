@@ -12,6 +12,9 @@ import { ListaCanon } from "@/features/canon/ListaCanon";
 import { ListaContratos } from "@/features/contratos/ListaContratos";
 import { FormularioOperadora } from "@/features/operadoras/FormularioOperadora";
 import { ListaOperadoras } from "@/features/operadoras/ListaOperadoras";
+import { DetalleNovedad } from "@/features/novedades/DetalleNovedad";
+import { FormularioNovedad } from "@/features/novedades/FormularioNovedad";
+import { ListaNovedades } from "@/features/novedades/ListaNovedades";
 import { PaginaPanel } from "@/features/panel/PaginaPanel";
 import { DetalleFactura } from "@/features/pagos/DetalleFactura";
 import { FormularioFactura } from "@/features/pagos/FormularioFactura";
@@ -45,6 +48,9 @@ export function App() {
                 <Route path="/facturas/nueva" element={<FormularioFactura />} />
                 <Route path="/facturas/morosidad" element={<ReporteMorosidad />} />
                 <Route path="/facturas/:id" element={<DetalleFactura />} />
+                <Route path="/novedades" element={<ListaNovedades />} />
+                <Route path="/novedades/nueva" element={<FormularioNovedad />} />
+                <Route path="/novedades/:id" element={<DetalleNovedad />} />
                 <Route path="/solicitudes" element={<ListaSolicitudes />} />
                 <Route path="/solicitudes/nueva" element={<FormularioSolicitud />} />
                 <Route path="/solicitudes/:id" element={<DetalleSolicitud />} />
