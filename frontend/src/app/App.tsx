@@ -13,6 +13,9 @@ import { ListaContratos } from "@/features/contratos/ListaContratos";
 import { FormularioOperadora } from "@/features/operadoras/FormularioOperadora";
 import { ListaOperadoras } from "@/features/operadoras/ListaOperadoras";
 import { PaginaPanel } from "@/features/panel/PaginaPanel";
+import { DetalleSolicitud } from "@/features/solicitudes/DetalleSolicitud";
+import { FormularioSolicitud } from "@/features/solicitudes/FormularioSolicitud";
+import { ListaSolicitudes } from "@/features/solicitudes/ListaSolicitudes";
 import { FormularioUsuario } from "@/features/usuarios/FormularioUsuario";
 import { ListaUsuarios } from "@/features/usuarios/ListaUsuarios";
 
@@ -34,6 +37,9 @@ export function App() {
                 <Route path="/alquileres-anuales" element={<ListaAlquileres />} />
                 <Route path="/alquileres-anuales/nuevo" element={<FormularioAlquilerAnual />} />
                 <Route path="/canon" element={<ListaCanon />} />
+                <Route path="/solicitudes" element={<ListaSolicitudes />} />
+                <Route path="/solicitudes/nueva" element={<FormularioSolicitud />} />
+                <Route path="/solicitudes/:id" element={<DetalleSolicitud />} />
                 <Route path="/alertas" element={<ListaAlertas />} />
                 <Route path="/usuarios" element={<ListaUsuarios />} />
                 <Route path="/usuarios/nuevo" element={<FormularioUsuario />} />
