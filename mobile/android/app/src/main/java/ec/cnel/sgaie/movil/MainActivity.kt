@@ -13,11 +13,12 @@ import androidx.compose.runtime.setValue
 import ec.cnel.sgaie.movil.map.DescargaSectorScreen
 import ec.cnel.sgaie.movil.map.EdicionEntidadScreen
 import ec.cnel.sgaie.movil.map.FeatureSeleccionada
+import ec.cnel.sgaie.movil.map.FotografiaCapturaScreen
 import ec.cnel.sgaie.movil.map.NotaAceptacionRutaScreen
 import ec.cnel.sgaie.movil.map.NotaIncumplimientoScreen
 import ec.cnel.sgaie.movil.map.OfflineMapScreen
 
-private enum class Pantalla { MAPA, DESCARGA_SECTOR, EDICION_ENTIDAD, NOTA_INCUMPLIMIENTO, NOTA_ACEPTACION_RUTA }
+private enum class Pantalla { MAPA, DESCARGA_SECTOR, EDICION_ENTIDAD, NOTA_INCUMPLIMIENTO, NOTA_ACEPTACION_RUTA, FOTOGRAFIA_CAPTURA }
 
 class MainActivity : ComponentActivity() {
 
@@ -62,6 +63,10 @@ class MainActivity : ComponentActivity() {
                                     entidadSeleccionada = FeatureSeleccionada(entidadTipo, entidadId)
                                     pantalla = Pantalla.NOTA_INCUMPLIMIENTO
                                 },
+                                onTomarFotografia = { entidadTipo, entidadId ->
+                                    entidadSeleccionada = FeatureSeleccionada(entidadTipo, entidadId)
+                                    pantalla = Pantalla.FOTOGRAFIA_CAPTURA
+                                },
                             )
                         }
 
@@ -70,6 +75,10 @@ class MainActivity : ComponentActivity() {
                                 entidadTipo = seleccion.entidadTipo,
                                 entidadId = seleccion.entidadId,
                                 onGuardado = { pantalla = Pantalla.MAPA },
+                                onTomarFotografia = { entidadTipo, entidadId ->
+                                    entidadSeleccionada = FeatureSeleccionada(entidadTipo, entidadId)
+                                    pantalla = Pantalla.FOTOGRAFIA_CAPTURA
+                                },
                             )
                         }
 
@@ -77,6 +86,18 @@ class MainActivity : ComponentActivity() {
                             NotaAceptacionRutaScreen(
                                 sectorTrabajoId = sectorTrabajoId,
                                 onGuardado = { pantalla = Pantalla.MAPA },
+                                onTomarFotografia = { entidadTipo, entidadId ->
+                                    entidadSeleccionada = FeatureSeleccionada(entidadTipo, entidadId)
+                                    pantalla = Pantalla.FOTOGRAFIA_CAPTURA
+                                },
+                            )
+                        }
+
+                        Pantalla.FOTOGRAFIA_CAPTURA -> entidadSeleccionada?.let { seleccion ->
+                            FotografiaCapturaScreen(
+                                entidadTipo = seleccion.entidadTipo,
+                                entidadId = seleccion.entidadId,
+                                onFinalizado = { pantalla = Pantalla.MAPA },
                             )
                         }
                     }

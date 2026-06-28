@@ -1,13 +1,14 @@
-# SGAIE Móvil — Android (scaffold M1+M2+M3)
+# SGAIE Móvil — Android (scaffold M1+M2+M3+M4)
 
 Proyecto Android nativo del componente móvil descrito en
 `mobile/ESPECIFICACION_MOVIL_OFFLINE.md`. Este scaffold cubre las fases
 **M1** (mapa offline con MapLibre, empaquetado de tiles vía MBTiles),
-**M2** (extracción ArcGIS → GeoPackage, visualización de capas) y **M3**
+**M2** (extracción ArcGIS → GeoPackage, visualización de capas), **M3**
 (CRUD offline de postes/redes/equipos, notas de incumplimiento y de
-aceptación de ruta, cola de sincronización) del roadmap (§12). M4+ (fotos
-con geolocalización ya enlazadas a sync real, `applyEdits`/
-`synchronizeReplica` contra ArcGIS) sigue fuera de alcance.
+aceptación de ruta, cola de sincronización) y **M4** (fotografías
+geolocalizadas con metadata EXIF y hash de integridad) del roadmap (§12).
+M5+ (worker de sincronización real `applyEdits`/`synchronizeReplica`
+contra ArcGIS, resolución de conflictos) sigue fuera de alcance.
 
 ## Qué incluye este scaffold
 
@@ -127,6 +128,60 @@ con geolocalización ya enlazadas a sync real, `applyEdits`/
   API pública documentada de la librería, pero no pudieron probarse
   contra una compilación real (ver limitación del entorno más abajo).
 
+### M4 — Fotografías geolocalizadas (§4.7, §7)
+
+- Tabla `fotografia` en GeoPackage (`data/FotografiaRepository.kt`), mismo
+  patrón de outbox que las notas de M3: `insertar()` puebla la geometría
+  punto (`GeoPackageProvider.geometriaPuntoWgs84`) con la latitud/longitud
+  reales de la captura —a diferencia de `nota_incumplimiento`/
+  `nota_aceptacion_ruta`, que dejan la geometría opcional sin poblar— y
+  encola `CREAR` en `cola_sincronizacion`. `EntidadTipo` se extendió con
+  `NOTA_INCUMPLIMIENTO`/`NOTA_ACEPTACION_RUTA` para que una fotografía
+  también pueda vincularse a una nota, no solo a poste/tramo/equipo/sector.
+- `map/UbicacionProvider.kt`: envuelve
+  `FusedLocationProviderClient.getCurrentLocation(PRIORITY_HIGH_ACCURACY, ...)`
+  (API listener-based de `play-services-location`) en una función
+  `suspend` vía `suspendCancellableCoroutine`, para obtener el "último fix
+  de alta precisión disponible" (§7) sin bloquear el hilo principal.
+- `map/FotografiaCapturaScreen.kt`: pantalla de captura con CameraX
+  (`Preview` + `ImageCapture` enlazados al ciclo de vida vía
+  `ProcessCameraProvider`), que solicita en tiempo de ejecución los
+  permisos `CAMERA` y `ACCESS_FINE_LOCATION`
+  (`rememberLauncherForActivityResult` +
+  `ActivityResultContracts.RequestMultiplePermissions`), guarda el JPEG en
+  almacenamiento de la app (`getExternalFilesDir("fotografias")`), escribe
+  metadata GPS en el EXIF del archivo (`androidx.exifinterface`:
+  `setLatLong`/`setAltitude`/`TAG_GPS_H_POSITIONING_ERROR`), calcula su
+  hash SHA-256 (integridad, mismo patrón que `Documento.hash_sha256` del
+  backend, §6.8) y la inserta vía `FotografiaRepository`.
+- Puntos de entrada cableados desde `MainActivity.kt`
+  (`Pantalla.FOTOGRAFIA_CAPTURA`, reutilizando `FeatureSeleccionada`):
+  botón "Tomar fotografía" en `EdicionEntidadScreen.kt` (poste/tramo/
+  equipo) y paso de confirmación "Tomar fotografía de evidencia" tras
+  guardar en `NotaIncumplimientoScreen.kt`/`NotaAceptacionRutaScreen.kt`.
+- Permiso `CAMERA` + `<uses-feature android:name="android.hardware.camera.any" android:required="false">`
+  agregados al manifiesto; `ACCESS_FINE_LOCATION`/`ACCESS_COARSE_LOCATION`
+  ya estaban declarados desde M2/M3 pero sin un consumidor real hasta
+  ahora.
+
+### Limitaciones explícitas de M4 (pendientes de confirmación con CNEL EP, §13)
+
+- **`acimut_grados` (orientación de la cámara, §4.7) no se captura**: se
+  guarda siempre `null`. Requeriría fusión de sensores (acelerómetro +
+  magnetómetro vía `SensorManager.getRotationMatrix`/`getOrientation`),
+  que no se puede escribir con confianza sin poder compilar/probar contra
+  un dispositivo real en este sandbox.
+- **API de bajo nivel de CameraX/FusedLocationProviderClient/
+  `CancellationTokenSource` sin verificar en este sandbox**: igual que el
+  resto del código de bajo nivel de M2/M3, se escribió según la API
+  pública documentada de `androidx.camera`/`play-services-location`, pero
+  no pudo compilarse ni probarse contra un dispositivo o emulador real
+  (ver limitación del entorno más abajo).
+- **Sin selector de cámara frontal/trasera ni zoom/flash**: la pantalla de
+  captura usa siempre `CameraSelector.DEFAULT_BACK_CAMERA` sin controles
+  adicionales, suficiente para el caso de uso de campo descrito en §7
+  pero no una app de cámara completa.
+
 ## Limitación conocida de este entorno (sandbox de desarrollo)
 
 Este contenedor tiene Java 21 y Gradle 8.14.3 instalados, pero **no tiene
@@ -180,12 +235,13 @@ en este entorno:
 6. Si no copias ningún `.mbtiles`, la app muestra el mensaje
    "No se encontró el paquete de tiles del sector..." en lugar de fallar.
 
-## Próximos pasos (fuera de alcance de M1+M2+M3)
+## Próximos pasos (fuera de alcance de M1+M2+M3+M4)
 
-- M4+: fotos geolocalizadas adjuntas a notas/entidades, worker que drena
-  `cola_sincronizacion` y sincroniza de vuelta a ArcGIS
-  (`applyEdits`/`synchronizeReplica`), resolución de conflictos, dibujo
-  interactivo de geometrías (extensión de descarga, trazado de ruta
-  verificada) directamente sobre el mapa.
+- M5+: worker que drena `cola_sincronizacion` y sincroniza de vuelta a
+  ArcGIS (`applyEdits`/`synchronizeReplica`, incluyendo el adjunto de las
+  fotografías de M4), resolución de conflictos, dibujo interactivo de
+  geometrías (extensión de descarga, trazado de ruta verificada)
+  directamente sobre el mapa, y captura de `acimut_grados` por fusión de
+  sensores.
 
 Ver el detalle completo de fases en `mobile/ESPECIFICACION_MOVIL_OFFLINE.md`.

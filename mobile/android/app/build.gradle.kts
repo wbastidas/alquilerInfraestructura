@@ -79,6 +79,18 @@ dependencies {
     // §5) sobre los Feature Services "sync enabled" ya existentes de CNEL EP.
     implementation("com.squareup.okhttp3:okhttp:4.12.0")
 
+    // Fotografías geolocalizadas (M3/M4, §4.7, §7): captura con CameraX,
+    // último fix de ubicación de alta precisión con FusedLocationProvider, y
+    // escritura de metadata EXIF (lat/long/altitud/precisión GPS).
+    // TODO: confirmar últimas versiones estables al compilar con acceso real
+    // a Maven Central/Google (no disponible en este sandbox).
+    implementation("androidx.camera:camera-core:1.3.4")
+    implementation("androidx.camera:camera-camera2:1.3.4")
+    implementation("androidx.camera:camera-lifecycle:1.3.4")
+    implementation("androidx.camera:camera-view:1.3.4")
+    implementation("com.google.android.gms:play-services-location:21.3.0")
+    implementation("androidx.exifinterface:exifinterface:1.3.7")
+
     debugImplementation("androidx.compose.ui:ui-tooling")
     debugImplementation("androidx.compose.ui:ui-test-manifest")
 }

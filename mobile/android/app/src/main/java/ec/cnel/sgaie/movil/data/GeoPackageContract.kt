@@ -20,6 +20,7 @@ object GeoPackageContract {
     const val TABLA_EQUIPO_TELECOMUNICACION = "equipo_telecomunicacion"
     const val TABLA_NOTA_INCUMPLIMIENTO = "nota_incumplimiento"
     const val TABLA_NOTA_ACEPTACION_RUTA = "nota_aceptacion_ruta"
+    const val TABLA_FOTOGRAFIA = "fotografia"
 
     /** §4.9: no es tabla de feature (sin geometría), se modela como tabla de atributos (`UserTable` simple). */
     const val TABLA_COLA_SINCRONIZACION = "cola_sincronizacion"
@@ -67,7 +68,7 @@ enum class EstadoEquipo {
 
 /** §4.5/§4.7: tipo de entidad referenciada polimórficamente (mismo patrón que `Documento.entidad_tipo` del backend, §6.8). */
 enum class EntidadTipo {
-    POSTE, TRAMO_RED, EQUIPO, SECTOR
+    POSTE, TRAMO_RED, EQUIPO, SECTOR, NOTA_INCUMPLIMIENTO, NOTA_ACEPTACION_RUTA
 }
 
 /**

@@ -9,6 +9,7 @@ import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.Button
 import androidx.compose.material3.CircularProgressIndicator
+import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -32,7 +33,12 @@ import java.util.UUID
 
 /** Dominio §4.5: registro de campo de un incumplimiento sobre la entidad seleccionada, encolado para sync (§5.2). */
 @Composable
-fun NotaIncumplimientoScreen(entidadTipo: EntidadTipo, entidadId: Long, onGuardado: () -> Unit) {
+fun NotaIncumplimientoScreen(
+    entidadTipo: EntidadTipo,
+    entidadId: Long,
+    onGuardado: () -> Unit,
+    onTomarFotografia: (EntidadTipo, Long) -> Unit,
+) {
     val context = LocalContext.current
     val scope = rememberCoroutineScope()
     val repository = remember { NotaIncumplimientoRepository(context) }
@@ -42,6 +48,19 @@ fun NotaIncumplimientoScreen(entidadTipo: EntidadTipo, entidadId: Long, onGuarda
     var gravedad by remember { mutableStateOf(Gravedad.LEVE.name) }
     var enProgreso by remember { mutableStateOf(false) }
     var error by remember { mutableStateOf<String?>(null) }
+    var notaGuardada by remember { mutableStateOf(false) }
+
+    if (notaGuardada) {
+        Column(
+            modifier = Modifier.fillMaxSize().padding(16.dp),
+            verticalArrangement = Arrangement.spacedBy(8.dp),
+        ) {
+            Text(text = "Nota de incumplimiento guardada y encolada para sincronización.")
+            Button(onClick = { onTomarFotografia(entidadTipo, entidadId) }) { Text("Tomar fotografía de evidencia") }
+            OutlinedButton(onClick = onGuardado) { Text("Finalizar") }
+        }
+        return
+    }
 
     Column(
         modifier = Modifier.fillMaxSize().verticalScroll(rememberScrollState()).padding(16.dp),
@@ -92,7 +111,7 @@ fun NotaIncumplimientoScreen(entidadTipo: EntidadTipo, entidadId: Long, onGuarda
                         )
                     }
                     enProgreso = false
-                    onGuardado()
+                    notaGuardada = true
                 }
             }) { Text("Guardar nota") }
         }

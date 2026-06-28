@@ -48,23 +48,42 @@ fun EdicionEntidadScreen(
     onGuardado: () -> Unit,
     onEliminado: () -> Unit,
     onRegistrarIncumplimiento: (EntidadTipo, Long) -> Unit,
+    onTomarFotografia: (EntidadTipo, Long) -> Unit,
 ) {
     when (entidadTipo) {
-        EntidadTipo.POSTE -> EdicionPoste(entidadId, onGuardado, onEliminado) {
-            onRegistrarIncumplimiento(EntidadTipo.POSTE, entidadId)
-        }
-        EntidadTipo.TRAMO_RED -> EdicionTramo(entidadId, onGuardado, onEliminado) {
-            onRegistrarIncumplimiento(EntidadTipo.TRAMO_RED, entidadId)
-        }
-        EntidadTipo.EQUIPO -> EdicionEquipo(entidadId, onGuardado, onEliminado) {
-            onRegistrarIncumplimiento(EntidadTipo.EQUIPO, entidadId)
-        }
+        EntidadTipo.POSTE -> EdicionPoste(
+            posteId = entidadId,
+            onGuardado = onGuardado,
+            onEliminado = onEliminado,
+            onRegistrarIncumplimiento = { onRegistrarIncumplimiento(EntidadTipo.POSTE, entidadId) },
+            onTomarFotografia = { onTomarFotografia(EntidadTipo.POSTE, entidadId) },
+        )
+        EntidadTipo.TRAMO_RED -> EdicionTramo(
+            tramoId = entidadId,
+            onGuardado = onGuardado,
+            onEliminado = onEliminado,
+            onRegistrarIncumplimiento = { onRegistrarIncumplimiento(EntidadTipo.TRAMO_RED, entidadId) },
+            onTomarFotografia = { onTomarFotografia(EntidadTipo.TRAMO_RED, entidadId) },
+        )
+        EntidadTipo.EQUIPO -> EdicionEquipo(
+            equipoId = entidadId,
+            onGuardado = onGuardado,
+            onEliminado = onEliminado,
+            onRegistrarIncumplimiento = { onRegistrarIncumplimiento(EntidadTipo.EQUIPO, entidadId) },
+            onTomarFotografia = { onTomarFotografia(EntidadTipo.EQUIPO, entidadId) },
+        )
         EntidadTipo.SECTOR -> Text(text = "El sector de trabajo no se edita desde aquí.")
     }
 }
 
 @Composable
-private fun EdicionPoste(posteId: Long, onGuardado: () -> Unit, onEliminado: () -> Unit, onRegistrarIncumplimiento: () -> Unit) {
+private fun EdicionPoste(
+    posteId: Long,
+    onGuardado: () -> Unit,
+    onEliminado: () -> Unit,
+    onRegistrarIncumplimiento: () -> Unit,
+    onTomarFotografia: () -> Unit,
+) {
     val context = LocalContext.current
     val scope = rememberCoroutineScope()
     val repository = remember { PosteRepository(context) }
@@ -145,12 +164,19 @@ private fun EdicionPoste(posteId: Long, onGuardado: () -> Unit, onEliminado: () 
             }) { Text("Eliminar poste") }
 
             OutlinedButton(onClick = onRegistrarIncumplimiento) { Text("Registrar nota de incumplimiento") }
+            OutlinedButton(onClick = onTomarFotografia) { Text("Tomar fotografía") }
         }
     }
 }
 
 @Composable
-private fun EdicionTramo(tramoId: Long, onGuardado: () -> Unit, onEliminado: () -> Unit, onRegistrarIncumplimiento: () -> Unit) {
+private fun EdicionTramo(
+    tramoId: Long,
+    onGuardado: () -> Unit,
+    onEliminado: () -> Unit,
+    onRegistrarIncumplimiento: () -> Unit,
+    onTomarFotografia: () -> Unit,
+) {
     val context = LocalContext.current
     val scope = rememberCoroutineScope()
     val repository = remember { TramoRedRepository(context) }
@@ -218,12 +244,19 @@ private fun EdicionTramo(tramoId: Long, onGuardado: () -> Unit, onEliminado: () 
             }) { Text("Eliminar tramo") }
 
             OutlinedButton(onClick = onRegistrarIncumplimiento) { Text("Registrar nota de incumplimiento") }
+            OutlinedButton(onClick = onTomarFotografia) { Text("Tomar fotografía") }
         }
     }
 }
 
 @Composable
-private fun EdicionEquipo(equipoId: Long, onGuardado: () -> Unit, onEliminado: () -> Unit, onRegistrarIncumplimiento: () -> Unit) {
+private fun EdicionEquipo(
+    equipoId: Long,
+    onGuardado: () -> Unit,
+    onEliminado: () -> Unit,
+    onRegistrarIncumplimiento: () -> Unit,
+    onTomarFotografia: () -> Unit,
+) {
     val context = LocalContext.current
     val scope = rememberCoroutineScope()
     val repository = remember { EquipoTelecomunicacionRepository(context) }
@@ -292,6 +325,7 @@ private fun EdicionEquipo(equipoId: Long, onGuardado: () -> Unit, onEliminado: (
             }) { Text("Eliminar equipo") }
 
             OutlinedButton(onClick = onRegistrarIncumplimiento) { Text("Registrar nota de incumplimiento") }
+            OutlinedButton(onClick = onTomarFotografia) { Text("Tomar fotografía") }
         }
     }
 }
