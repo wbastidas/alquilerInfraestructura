@@ -71,6 +71,7 @@ class NotaIncumplimientoRepository(private val context: Context) {
         val idLocal = dao.create(fila)
 
         colaSincronizacion.encolar(
+            tablaOrigen = TablaOrigen.NOTA_INCUMPLIMIENTO,
             entidadTipo = nota.entidadTipo,
             entidadId = idLocal,
             operacion = OperacionSincronizacion.CREAR,

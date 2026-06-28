@@ -86,6 +86,7 @@ class FotografiaRepository(private val context: Context) {
         val idLocal = dao.create(fila)
 
         colaSincronizacion.encolar(
+            tablaOrigen = TablaOrigen.FOTOGRAFIA,
             entidadTipo = foto.entidadTipo,
             entidadId = idLocal,
             operacion = OperacionSincronizacion.CREAR,

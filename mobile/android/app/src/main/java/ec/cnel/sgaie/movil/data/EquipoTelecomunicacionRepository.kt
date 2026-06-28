@@ -102,6 +102,7 @@ class EquipoTelecomunicacionRepository(private val context: Context) {
 
         val equipoActualizado = equipo.copy(operacionPendiente = OperacionPendiente.EDITAR)
         colaSincronizacion.encolar(
+            tablaOrigen = TablaOrigen.EQUIPO,
             entidadTipo = EntidadTipo.EQUIPO,
             entidadId = equipo.id,
             operacion = OperacionSincronizacion.EDITAR,
@@ -120,6 +121,7 @@ class EquipoTelecomunicacionRepository(private val context: Context) {
         dao.deleteById(id)
 
         colaSincronizacion.encolar(
+            tablaOrigen = TablaOrigen.EQUIPO,
             entidadTipo = EntidadTipo.EQUIPO,
             entidadId = id,
             operacion = OperacionSincronizacion.ELIMINAR,

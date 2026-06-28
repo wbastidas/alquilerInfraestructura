@@ -66,6 +66,7 @@ class NotaAceptacionRutaRepository(private val context: Context) {
         val idLocal = dao.create(fila)
 
         colaSincronizacion.encolar(
+            tablaOrigen = TablaOrigen.NOTA_ACEPTACION_RUTA,
             entidadTipo = EntidadTipo.SECTOR,
             entidadId = idLocal,
             operacion = OperacionSincronizacion.CREAR,

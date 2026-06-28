@@ -1,6 +1,8 @@
 package ec.cnel.sgaie.movil.map
 
+import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material3.FloatingActionButton
@@ -41,6 +43,7 @@ fun OfflineMapScreen(
     onIrADescargarSector: () -> Unit = {},
     onEntidadSeleccionada: (EntidadTipo, Long) -> Unit = { _, _ -> },
     onRegistrarAceptacionRuta: (Long) -> Unit = {},
+    onIrASincronizar: () -> Unit = {},
 ) {
     val context = LocalContext.current
     val lifecycleOwner = LocalLifecycleOwner.current
@@ -132,13 +135,18 @@ fun OfflineMapScreen(
 
     Box(modifier = Modifier.fillMaxSize()) {
         AndroidView(modifier = Modifier.fillMaxSize(), factory = { mapView })
-        FloatingActionButton(
-            onClick = onIrADescargarSector,
+        Column(
             modifier = Modifier
                 .align(Alignment.BottomEnd)
                 .padding(16.dp),
+            verticalArrangement = Arrangement.spacedBy(8.dp),
         ) {
-            Text(text = "⤓")
+            FloatingActionButton(onClick = onIrASincronizar) {
+                Text(text = "⇅")
+            }
+            FloatingActionButton(onClick = onIrADescargarSector) {
+                Text(text = "⤓")
+            }
         }
         sectorActualId?.let { sectorId ->
             FloatingActionButton(

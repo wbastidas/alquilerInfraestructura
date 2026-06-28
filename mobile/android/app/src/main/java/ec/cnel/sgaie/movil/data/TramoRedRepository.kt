@@ -86,6 +86,7 @@ class TramoRedRepository(private val context: Context) {
 
         val tramoActualizado = tramo.copy(operacionPendiente = OperacionPendiente.EDITAR)
         colaSincronizacion.encolar(
+            tablaOrigen = TablaOrigen.TRAMO_RED,
             entidadTipo = EntidadTipo.TRAMO_RED,
             entidadId = tramo.id,
             operacion = OperacionSincronizacion.EDITAR,
@@ -103,6 +104,7 @@ class TramoRedRepository(private val context: Context) {
         dao.deleteById(id)
 
         colaSincronizacion.encolar(
+            tablaOrigen = TablaOrigen.TRAMO_RED,
             entidadTipo = EntidadTipo.TRAMO_RED,
             entidadId = id,
             operacion = OperacionSincronizacion.ELIMINAR,

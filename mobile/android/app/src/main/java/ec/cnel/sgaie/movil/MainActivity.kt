@@ -10,6 +10,7 @@ import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
+import ec.cnel.sgaie.movil.map.ConflictosPendientesScreen
 import ec.cnel.sgaie.movil.map.DescargaSectorScreen
 import ec.cnel.sgaie.movil.map.EdicionEntidadScreen
 import ec.cnel.sgaie.movil.map.FeatureSeleccionada
@@ -17,13 +18,19 @@ import ec.cnel.sgaie.movil.map.FotografiaCapturaScreen
 import ec.cnel.sgaie.movil.map.NotaAceptacionRutaScreen
 import ec.cnel.sgaie.movil.map.NotaIncumplimientoScreen
 import ec.cnel.sgaie.movil.map.OfflineMapScreen
+import ec.cnel.sgaie.movil.map.SincronizacionScreen
+import ec.cnel.sgaie.movil.sync.SincronizacionWorker
 
-private enum class Pantalla { MAPA, DESCARGA_SECTOR, EDICION_ENTIDAD, NOTA_INCUMPLIMIENTO, NOTA_ACEPTACION_RUTA, FOTOGRAFIA_CAPTURA }
+private enum class Pantalla { MAPA, DESCARGA_SECTOR, EDICION_ENTIDAD, NOTA_INCUMPLIMIENTO, NOTA_ACEPTACION_RUTA, FOTOGRAFIA_CAPTURA, SINCRONIZACION, CONFLICTOS_PENDIENTES }
 
 class MainActivity : ComponentActivity() {
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
+        // Si ya hubo una sincronización manual previa (URL/token persistidos
+        // en SincronizacionPreferencias), reanuda el respaldo periódico (§5.3);
+        // si no, el worker se omite a sí mismo hasta que existan credenciales.
+        SincronizacionWorker.programar(this)
         setContent {
             MaterialTheme {
                 Surface {
@@ -44,6 +51,7 @@ class MainActivity : ComponentActivity() {
                                 sectorParaNotaRuta = sectorTrabajoId
                                 pantalla = Pantalla.NOTA_ACEPTACION_RUTA
                             },
+                            onIrASincronizar = { pantalla = Pantalla.SINCRONIZACION },
                         )
 
                         Pantalla.DESCARGA_SECTOR -> DescargaSectorScreen(
@@ -100,6 +108,12 @@ class MainActivity : ComponentActivity() {
                                 onFinalizado = { pantalla = Pantalla.MAPA },
                             )
                         }
+
+                        Pantalla.SINCRONIZACION -> SincronizacionScreen(
+                            onIrAConflictosPendientes = { pantalla = Pantalla.CONFLICTOS_PENDIENTES },
+                        )
+
+                        Pantalla.CONFLICTOS_PENDIENTES -> ConflictosPendientesScreen()
                     }
                 }
             }

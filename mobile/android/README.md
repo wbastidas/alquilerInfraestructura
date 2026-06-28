@@ -1,14 +1,15 @@
-# SGAIE Móvil — Android (scaffold M1+M2+M3+M4)
+# SGAIE Móvil — Android (scaffold M1+M2+M3+M4+M5)
 
 Proyecto Android nativo del componente móvil descrito en
 `mobile/ESPECIFICACION_MOVIL_OFFLINE.md`. Este scaffold cubre las fases
 **M1** (mapa offline con MapLibre, empaquetado de tiles vía MBTiles),
 **M2** (extracción ArcGIS → GeoPackage, visualización de capas), **M3**
 (CRUD offline de postes/redes/equipos, notas de incumplimiento y de
-aceptación de ruta, cola de sincronización) y **M4** (fotografías
-geolocalizadas con metadata EXIF y hash de integridad) del roadmap (§12).
-M5+ (worker de sincronización real `applyEdits`/`synchronizeReplica`
-contra ArcGIS, resolución de conflictos) sigue fuera de alcance.
+aceptación de ruta, cola de sincronización), **M4** (fotografías
+geolocalizadas con metadata EXIF y hash de integridad) y **M5**
+(sincronización de vuelta a ArcGIS vía `applyEdits`/`addAttachment`,
+resolución manual de conflictos, sincronización periódica en segundo
+plano) del roadmap (§12).
 
 ## Qué incluye este scaffold
 
@@ -182,6 +183,87 @@ contra ArcGIS, resolución de conflictos) sigue fuera de alcance.
   adicionales, suficiente para el caso de uso de campo descrito en §7
   pero no una app de cámara completa.
 
+### M5 — Sincronización de vuelta + conflictos (§5.3, §5.4)
+
+- `sync/ArcGisRestClient.kt` se extiende con tres métodos: `applyEdits`
+  (sube altas/ediciones/bajas a una capa identificando cada feature por
+  `GlobalID` vía `useGlobalIds=true`, en vez de requerir una resolución
+  previa de OBJECTID), `obtenerObjectIdPorGlobalId` (resuelve el OBJECTID
+  asignado por el servidor a partir de un `GlobalID`, único caso que lo
+  necesita: `addAttachment` no admite `useGlobalIds`) y `addAttachment`
+  (sube un archivo como adjunto de una feature).
+- `data/GeoPackageContract.kt` agrega `TablaOrigen` (qué tabla GeoPackage
+  generó cada ítem de la cola, ya que `entidad_tipo`/`entidad_id` tienen
+  semántica distinta según el origen) y el estado `CONFLICTO` en
+  `EstadoSincronizacion` (un rechazo de ArcGIS que la especificación exige
+  dejar siempre para revisión manual, distinto de un `ERROR` simple
+  reintentable), junto con `TipoConflictoSincronizacion`
+  (`ELIMINADO_EN_SERVIDOR`/`ERROR_NO_RECUPERABLE`).
+- `data/ConflictoSincronizacionRepository.kt` (tabla
+  `conflicto_sincronizacion`): persiste el detalle de cada conflicto no
+  resuelto automáticamente (versión local y, si la hay, la del servidor)
+  para la pantalla de "Conflictos pendientes".
+- `sync/SincronizadorCambios.kt`: orquestador que drena
+  `cola_sincronizacion`, agrupa los ítems pendientes de poste/tramo_red/
+  equipo por capa y llama `applyEdits` por lotes (reconstruyendo
+  atributos+geometría en vivo desde el repositorio correspondiente para
+  CREAR/EDITAR, ya que el snapshot JSON de la cola no incluye geometría),
+  sube fotografías pendientes vía `addAttachment` resolviendo su OBJECTID,
+  clasifica cada resultado en ENVIADO/ERROR/CONFLICTO, y al final
+  recalcula `SectorTrabajo.estado` (`CON_CONFLICTOS`/`SINCRONIZADO`) según
+  el estado restante de los ítems de cada sector.
+- Pantallas `map/SincronizacionScreen.kt` ("Sincronizar ahora", con el
+  mismo patrón de captura manual de URL/token de `DescargaSectorScreen`)
+  y `map/ConflictosPendientesScreen.kt` (lista ambas versiones de cada
+  conflicto con un botón "Descartar"), navegadas desde un tercer botón
+  flotante ("⇅") en `map/OfflineMapScreen.kt`.
+- `sync/SincronizacionWorker.kt` (`CoroutineWorker` + WorkManager):
+  reintenta la sincronización cada 15 minutos (mínimo permitido por
+  WorkManager para trabajo periódico) solo con red disponible, reutilizando
+  la URL/token de la última sincronización manual exitosa, persistidos en
+  `sync/SincronizacionPreferencias.kt` (SharedPreferences). Se programa al
+  abrir la app (`MainActivity.onCreate`) y de nuevo tras cada
+  sincronización manual.
+
+### Limitaciones explícitas de M5 (pendientes de confirmación con CNEL EP, §13)
+
+- **`supportsApplyEditsWithGlobalIds` sin confirmar**: `applyEdits` con
+  `useGlobalIds=true` requiere que la capa lo soporte en su definición de
+  servicio; no se pudo verificar contra un Feature Service real de CNEL EP
+  en este sandbox. Si la capa no lo soporta, ArcGIS devuelve error y el
+  ítem queda en `ERROR` para revisión manual (nunca se aplica con datos
+  incorrectos).
+- **Clasificación de conflicto por texto del mensaje de error**: no se
+  pudo confirmar el código de error exacto que ArcGIS devuelve para "la
+  feature ya no existe en el servidor" (el único caso que §5.4 exige
+  dejar siempre para revisión manual); se usa una heurística de texto
+  (`"not found"`/`"no encontr"` en la descripción/mensaje del error) para
+  distinguirlo de un `ERROR_NO_RECUPERABLE` simple. Debe ajustarse si CNEL
+  EP confirma el código real.
+- **Alcance de capas sincronizadas**: `applyEdits` solo cubre
+  poste/tramo_red/equipo (las únicas con capa ArcGIS confirmada en
+  `ArcGisConfig.Capas`); `nota_incumplimiento`/`nota_aceptacion_ruta`
+  quedan fuera de alcance de M5 (sin capa confirmada). Las fotografías
+  vinculadas a sector o a una nota tampoco se suben (su ítem de cola queda
+  `PENDIENTE` indefinidamente, sin marcarse como error, hasta que se
+  resuelva esta limitación).
+- **FK origen/destino omitidas al reconstruir atributos**: igual que en
+  M2, `poste_origen_id`/`poste_destino_id`/`poste_id` no se incluyen en
+  los atributos enviados a `applyEdits` (requieren resolver el `GlobalID`
+  del lado servidor, no implementado en esta fase).
+- **`actualizarEstado`/`queryForIdRow` de bajo nivel sin verificar**: igual
+  que el resto de la API de bajo nivel de `geopackage-android` usada en
+  este scaffold (ver limitaciones de M3), no se pudo probar contra una
+  compilación real.
+- **Sin login OAuth2 real**: la URL/token de ArcGIS persistidos para el
+  worker periódico son los mismos capturados manualmente en
+  `SincronizacionScreen`, guardados sin cifrar en SharedPreferences;
+  placeholder hasta tener un flujo OAuth2 real (§9).
+- **Resolución de conflictos limitada a "Descartar"**: `ConflictosPendientesScreen`
+  solo permite quitar un conflicto de la lista una vez resuelto
+  manualmente fuera de la app (p. ej. en ArcGIS Pro); no ofrece "forzar
+  reenvío" ni "descartar cambio local" como acciones automáticas.
+
 ## Limitación conocida de este entorno (sandbox de desarrollo)
 
 Este contenedor tiene Java 21 y Gradle 8.14.3 instalados, pero **no tiene
@@ -235,13 +317,15 @@ en este entorno:
 6. Si no copias ningún `.mbtiles`, la app muestra el mensaje
    "No se encontró el paquete de tiles del sector..." en lugar de fallar.
 
-## Próximos pasos (fuera de alcance de M1+M2+M3+M4)
+## Próximos pasos (fuera de alcance de M1+M2+M3+M4+M5)
 
-- M5+: worker que drena `cola_sincronizacion` y sincroniza de vuelta a
-  ArcGIS (`applyEdits`/`synchronizeReplica`, incluyendo el adjunto de las
-  fotografías de M4), resolución de conflictos, dibujo interactivo de
-  geometrías (extensión de descarga, trazado de ruta verificada)
-  directamente sobre el mapa, y captura de `acimut_grados` por fusión de
-  sensores.
+- Sincronización de `nota_incumplimiento`/`nota_aceptacion_ruta` y de las
+  fotografías vinculadas a sector/notas (capas ArcGIS sin confirmar).
+- Resolución de conflictos más allá de "Descartar" (forzar reenvío,
+  descartar cambio local, fusión de versiones).
+- Login OAuth2 real (reemplaza la captura manual de URL/token en todas las
+  pantallas que la usan), dibujo interactivo de geometrías (extensión de
+  descarga, trazado de ruta verificada) directamente sobre el mapa, y
+  captura de `acimut_grados` por fusión de sensores.
 
 Ver el detalle completo de fases en `mobile/ESPECIFICACION_MOVIL_OFFLINE.md`.

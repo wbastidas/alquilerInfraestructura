@@ -24,6 +24,9 @@ object GeoPackageContract {
 
     /** §4.9: no es tabla de feature (sin geometría), se modela como tabla de atributos (`UserTable` simple). */
     const val TABLA_COLA_SINCRONIZACION = "cola_sincronizacion"
+
+    /** §5.4: registro de conflictos no resueltos automáticamente, igual de sin-geometría que la cola. */
+    const val TABLA_CONFLICTO_SINCRONIZACION = "conflicto_sincronizacion"
 }
 
 /** Marca si un registro tiene cambios sin sincronizar (§4, encabezado). */
@@ -101,7 +104,38 @@ enum class OperacionSincronizacion {
     CREAR, EDITAR, ELIMINAR
 }
 
-/** §4.9 `cola_sincronizacion.estado` */
+/**
+ * §4.9 `cola_sincronizacion.estado`. `CONFLICTO` se agrega en M5 (§5.4) para
+ * distinguir el único caso que la especificación exige dejar SIEMPRE para
+ * revisión manual (elemento eliminado en el servidor mientras se editaba en
+ * campo) de un `ERROR` simple y reintentable.
+ */
 enum class EstadoSincronizacion {
-    PENDIENTE, ENVIADO, ERROR
+    PENDIENTE, ENVIADO, ERROR, CONFLICTO
+}
+
+/**
+ * §4.9 `cola_sincronizacion.tabla_origen`: identifica la tabla GeoPackage que
+ * generó el ítem encolado. Necesario porque `entidad_tipo`/`entidad_id` del
+ * mismo ítem tienen semántica distinta según quién encola: para
+ * poste/tramo_red/equipo, "esta fila ES esa entidad"; para
+ * nota_incumplimiento/nota_aceptacion_ruta/fotografia, `entidad_tipo`/
+ * `entidad_id` apuntan a la entidad SOBRE la que trata la nota/foto, no a la
+ * nota/foto en sí (cuyo propio id local es el `entidad_id` original que ya
+ * traía la fila). El sincronizador de M5 necesita saber esto último sin
+ * ambigüedad para enrutar cada payload a la capa/tabla de ArcGIS correcta.
+ */
+enum class TablaOrigen {
+    POSTE, TRAMO_RED, EQUIPO, NOTA_INCUMPLIMIENTO, NOTA_ACEPTACION_RUTA, FOTOGRAFIA
+}
+
+/**
+ * §5.4: tipo de conflicto no resuelto automáticamente. `ELIMINADO_EN_SERVIDOR`
+ * es el único caso que la especificación exige dejar siempre para revisión
+ * manual; `ERROR_NO_RECUPERABLE` cubre cualquier otro rechazo de ArcGIS que,
+ * tras los reintentos, no se puede aplicar sin intervención (p. ej. un
+ * validation error de dominio que el campo no puede corregir solo).
+ */
+enum class TipoConflictoSincronizacion {
+    ELIMINADO_EN_SERVIDOR, ERROR_NO_RECUPERABLE
 }

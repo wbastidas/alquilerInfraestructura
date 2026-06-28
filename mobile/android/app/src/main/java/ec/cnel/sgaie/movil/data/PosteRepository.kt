@@ -103,6 +103,7 @@ class PosteRepository(private val context: Context) {
 
         val posteActualizado = poste.copy(operacionPendiente = OperacionPendiente.EDITAR)
         colaSincronizacion.encolar(
+            tablaOrigen = TablaOrigen.POSTE,
             entidadTipo = EntidadTipo.POSTE,
             entidadId = poste.id,
             operacion = OperacionSincronizacion.EDITAR,
@@ -120,6 +121,7 @@ class PosteRepository(private val context: Context) {
         dao.deleteById(id)
 
         colaSincronizacion.encolar(
+            tablaOrigen = TablaOrigen.POSTE,
             entidadTipo = EntidadTipo.POSTE,
             entidadId = id,
             operacion = OperacionSincronizacion.ELIMINAR,

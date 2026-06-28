@@ -73,6 +73,21 @@ class SectorTrabajoRepository(private val context: Context) {
         return dao.create(fila)
     }
 
+    /**
+     * §5.3/§5.4: marca el resultado de un ciclo de sincronización sobre el
+     * sector (`SINCRONIZADO` si todo se aplicó, `CON_CONFLICTOS` si quedó
+     * algún ítem en `CONFLICTO`) y estampa `fecha_ultima_sync`.
+     */
+    fun actualizarEstado(id: Long, estado: EstadoSectorTrabajo, fechaUltimaSync: Instant = Instant.now()): Boolean {
+        crearTablaSiNoExiste()
+        val dao = GeoPackageProvider.obtener(context).getFeatureDao(GeoPackageContract.TABLA_SECTOR_TRABAJO)
+        val fila = dao.queryForIdRow(id) ?: return false
+        fila.setValue(COL_ESTADO, estado.name)
+        fila.setValue(COL_FECHA_ULTIMA_SYNC, fechaUltimaSync.toString())
+        dao.update(fila)
+        return true
+    }
+
     fun listarTodos(): List<SectorTrabajo> {
         crearTablaSiNoExiste()
         val dao = GeoPackageProvider.obtener(context).getFeatureDao(GeoPackageContract.TABLA_SECTOR_TRABAJO)

@@ -79,6 +79,10 @@ dependencies {
     // §5) sobre los Feature Services "sync enabled" ya existentes de CNEL EP.
     implementation("com.squareup.okhttp3:okhttp:4.12.0")
 
+    // Sincronización periódica en segundo plano (M5, §5.3), con reintento
+    // automático respetando restricciones del sistema (solo con red disponible).
+    implementation("androidx.work:work-runtime-ktx:2.9.1")
+
     // Fotografías geolocalizadas (M3/M4, §4.7, §7): captura con CameraX,
     // último fix de ubicación de alta precisión con FusedLocationProvider, y
     // escritura de metadata EXIF (lat/long/altitud/precisión GPS).
