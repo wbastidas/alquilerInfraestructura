@@ -1,12 +1,15 @@
-# SGAIE Móvil — Android (scaffold M1)
+# SGAIE Móvil — Android (scaffold M1+M2)
 
 Proyecto Android nativo del componente móvil descrito en
-`mobile/ESPECIFICACION_MOVIL_OFFLINE.md`. Este scaffold corresponde a la
-**Fase M1** del roadmap (§ tabla de fases): mapa offline con MapLibre,
-empaquetado de tiles vía MBTiles, **sin** integración con ArcGIS todavía
-(eso es M2+).
+`mobile/ESPECIFICACION_MOVIL_OFFLINE.md`. Este scaffold cubre las fases
+**M1** (mapa offline con MapLibre, empaquetado de tiles vía MBTiles) y
+**M2** (extracción ArcGIS → GeoPackage, visualización de capas) del
+roadmap (§12). M3+ (edición offline, fotos, cola de sincronización,
+`applyEdits`) sigue fuera de alcance.
 
 ## Qué incluye este scaffold
+
+### M1 — mapa offline
 
 - Proyecto Gradle (Kotlin DSL) con un único módulo `:app`.
 - Jetpack Compose + Material 3 (UI mínima).
@@ -16,8 +19,55 @@ empaquetado de tiles vía MBTiles, **sin** integración con ArcGIS todavía
 - Servidor HTTP embebido (`map/OfflineTileServer.kt`, NanoHTTPD) que sirve
   un archivo `.mbtiles` local como tiles XYZ en `127.0.0.1`, con la
   conversión de fila TMS→XYZ que requiere el formato MBTiles.
-- Sin `INTERNET` en el manifiesto: el mapa funciona 100% offline a partir
-  de un paquete de tiles ya copiado al dispositivo.
+
+### M2 — extracción ArcGIS → GeoPackage (§5.1, §4, §6)
+
+- Modelo de datos local en GeoPackage (estándar OGC, inspeccionable con
+  QGIS/ArcGIS Pro): `data/GeoPackageContract.kt`, `data/GeoPackageProvider.kt`
+  y un repositorio por entidad (`SectorTrabajoRepository`, `PosteRepository`,
+  `TramoRedRepository`, `EquipoTelecomunicacionRepository`), todos con
+  creación de tabla idempotente y `insertar`/`listarPor*`.
+- Cliente REST mínimo hacia un Feature Service de ArcGIS "sync enabled"
+  (`sync/ArcGisRestClient.kt`): `createReplica` con `dataFormat=sqlite` y
+  descarga del archivo resultante (la réplica es en sí misma SQLite, sin
+  parser de geodatabase binaria propietario).
+- Lectura genérica de la réplica descargada (`sync/ReplicaGeodatabaseReader.kt`)
+  y mapeo de columnas a las entidades locales (`sync/FieldMapping.kt`).
+- Orquestador de extracción completo (`sync/ArcGisSectorExtractor.kt`):
+  `createReplica` → lectura → mapeo → resolución de referencias
+  poste-origen/poste-destino/poste-de-equipo por `GlobalID` → escritura en
+  los repositorios GeoPackage.
+- Capas vectoriales del sector sobre el mapa offline
+  (`map/SectorLayersRenderer.kt`): postes, tramos de red y equipos, leídos
+  directamente del GeoPackage local y dibujados como `GeoJsonSource` +
+  `CircleLayer`/`LineLayer`, con color por `estado_fisico`/`tipo_red`.
+- Pantalla "Descargar sector de trabajo" (`map/DescargaSectorScreen.kt`),
+  accesible desde el botón flotante del mapa, que captura los datos
+  mínimos (URL del servicio, token, extensión geográfica) y dispara el
+  orquestador; al finalizar, vuelve al mapa y redibuja las capas.
+- `INTERNET`/`ACCESS_NETWORK_STATE` en el manifiesto: única operación
+  online del componente (la extracción); el resto del trabajo de campo
+  sigue siendo 100% offline.
+
+### Limitaciones explícitas de M2 (pendientes de confirmación con CNEL EP, §13)
+
+- **Sin login OAuth2 real**: el token de ArcGIS se captura manualmente en
+  la pantalla de descarga en vez de obtenerse de un flujo de autenticación,
+  porque el mecanismo real (OAuth2 de la organización ArcGIS) está
+  pendiente de confirmación.
+- **Sin dibujo de extensión sobre el mapa**: el rectángulo de extracción se
+  captura como 4 campos numéricos (xmin/ymin/xmax/ymax) en vez de
+  dibujarse interactivamente sobre el mapa.
+- **Nombres de tabla/columna de la réplica sin confirmar**: las constantes
+  `TABLA_*`/`COL_*` de `FieldMapping.kt` y `ArcGisSectorExtractor.kt` asumen
+  los nombres en español del modelo de datos de este documento; si el
+  Feature Service real de CNEL EP expone otros nombres, deben ajustarse.
+- **Convención de FK origen/destino sin confirmar**: se asume que
+  `poste_origen_id`/`poste_destino_id`/`poste_id` en la réplica contienen el
+  `GlobalID` (texto) del poste relacionado, no su `OBJECTID` numérico.
+- No se implementó polling de `/createReplica/jobs/{jobId}` (réplica
+  asíncrona): se asume `async=false` viable para el tamaño de sector
+  esperado; revisar si CNEL EP confirma sectores grandes.
 
 ## Limitación conocida de este entorno (sandbox de desarrollo)
 
@@ -47,6 +97,16 @@ en este entorno:
   estables de MapLibre Android SDK 11.x, AndroidX y NanoHTTPD, pero su
   compilación real debe verificarse en una máquina con Android Studio o
   con acceso de red sin restricciones a `dl.google.com`.
+- Las dependencias agregadas en M2 (`mil.nga.geopackage:geopackage-android`,
+  `com.squareup.okhttp3:okhttp`) están en Maven Central, no en el
+  repositorio de Google, pero **tampoco se pudo verificar su resolución
+  real** en este sandbox: la evaluación de Gradle falla antes, al
+  resolver el plugin de Android (bloqueado en `dl.google.com`), así que
+  nunca llega a intentar resolver las dependencias del módulo `:app`.
+  `./gradlew help` sí se volvió a ejecutar tras agregar todo el código de
+  M2 y el resultado es el mismo fallo esperado de M1 (plugin de Android no
+  resuelto), confirmando que la sintaxis Kotlin/Gradle de los archivos
+  nuevos no introdujo errores adicionales de evaluación.
 
 ## Cómo validarlo localmente (con Android Studio)
 
@@ -62,12 +122,11 @@ en este entorno:
 6. Si no copias ningún `.mbtiles`, la app muestra el mensaje
    "No se encontró el paquete de tiles del sector..." en lugar de fallar.
 
-## Próximos pasos (fuera de alcance de M1)
+## Próximos pasos (fuera de alcance de M1+M2)
 
-- M2: extracción de sectores desde ArcGIS (`createReplica`) y carga del
-  modelo de datos en GeoPackage local.
-- M3+: CRUD de postes/redes/equipos, notas de incumplimiento/aceptación
-  de ruta, fotos geolocalizadas, cola de sincronización
-  (`cola_sincronizacion`) y sync de vuelta a ArcGIS (`applyEdits`).
+- M3+: CRUD de postes/redes/equipos en campo, notas de
+  incumplimiento/aceptación de ruta, fotos geolocalizadas, cola de
+  sincronización (`cola_sincronizacion`) y sync de vuelta a ArcGIS
+  (`applyEdits`/`synchronizeReplica`).
 
 Ver el detalle completo de fases en `mobile/ESPECIFICACION_MOVIL_OFFLINE.md`.

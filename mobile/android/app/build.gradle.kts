@@ -68,6 +68,17 @@ dependencies {
     // tiles XYZ en 127.0.0.1, consumido por MapLibre como RasterSource http(s).
     implementation("org.nanohttpd:nanohttpd:2.3.1")
 
+    // Almacenamiento local en GeoPackage (estándar OGC), en vez de SQLite
+    // ad-hoc, para que el archivo del sector sea inspeccionable/portable con
+    // QGIS o ArcGIS Pro (mobile/ESPECIFICACION_MOVIL_OFFLINE.md §3.2/§4).
+    // TODO: confirmar última versión estable al compilar con acceso real a
+    // Maven Central (no disponible en este sandbox).
+    implementation("mil.nga.geopackage:geopackage-android:6.6.5")
+
+    // Cliente REST hacia ArcGIS (createReplica/synchronizeReplica/applyEdits,
+    // §5) sobre los Feature Services "sync enabled" ya existentes de CNEL EP.
+    implementation("com.squareup.okhttp3:okhttp:4.12.0")
+
     debugImplementation("androidx.compose.ui:ui-tooling")
     debugImplementation("androidx.compose.ui:ui-test-manifest")
 }

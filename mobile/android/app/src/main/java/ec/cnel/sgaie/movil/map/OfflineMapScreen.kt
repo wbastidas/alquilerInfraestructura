@@ -2,6 +2,8 @@ package ec.cnel.sgaie.movil.map
 
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.padding
+import androidx.compose.material3.FloatingActionButton
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
@@ -10,15 +12,19 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalLifecycleOwner
+import androidx.compose.ui.unit.dp
 import androidx.compose.ui.viewinterop.AndroidView
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.LifecycleEventObserver
 import ec.cnel.sgaie.movil.R
+import ec.cnel.sgaie.movil.data.SectorTrabajoRepository
 import org.maplibre.android.camera.CameraPosition
 import org.maplibre.android.geometry.LatLng
+import org.maplibre.android.maps.MapLibreMap
 import org.maplibre.android.maps.MapView
 import org.maplibre.android.maps.Style
 import java.io.File
@@ -29,7 +35,7 @@ private const val ZOOM_POR_DEFECTO = 12.0
 private const val NOMBRE_MBTILES_DEMO = "sector-demo.mbtiles"
 
 @Composable
-fun OfflineMapScreen() {
+fun OfflineMapScreen(disparadorActualizacionSector: Int = 0, onIrADescargarSector: () -> Unit = {}) {
     val context = LocalContext.current
     val lifecycleOwner = LocalLifecycleOwner.current
 
@@ -37,6 +43,7 @@ fun OfflineMapScreen() {
         File(context.getExternalFilesDir("tiles"), NOMBRE_MBTILES_DEMO)
     }
     var tileServer by remember { mutableStateOf<OfflineTileServer?>(null) }
+    var mapaCargado by remember { mutableStateOf<MapLibreMap?>(null) }
 
     if (!mbtilesFile.exists()) {
         Box(modifier = Modifier.fillMaxSize()) {
@@ -75,13 +82,42 @@ fun OfflineMapScreen() {
         val servidor = tileServer ?: return@LaunchedEffect
         val estiloJson = OfflineMapStyleProvider.construirEstiloJson(servidor.tileUrlTemplate())
         mapView.getMapAsync { mapa ->
-            mapa.setStyle(Style.Builder().fromJson(estiloJson))
-            mapa.cameraPosition = CameraPosition.Builder()
-                .target(CENTRO_POR_DEFECTO)
-                .zoom(ZOOM_POR_DEFECTO)
-                .build()
+            mapa.setStyle(Style.Builder().fromJson(estiloJson)) {
+                mapa.cameraPosition = CameraPosition.Builder()
+                    .target(CENTRO_POR_DEFECTO)
+                    .zoom(ZOOM_POR_DEFECTO)
+                    .build()
+                mapaCargado = mapa
+
+                // M2: hasta que exista un selector de sector (la pantalla de
+                // descarga solo agrega sectores nuevos), se dibuja el primer
+                // sector ya extraído al GeoPackage local, si lo hay.
+                val sector = SectorTrabajoRepository(context).listarTodos().firstOrNull()
+                if (sector != null) {
+                    SectorLayersRenderer.agregarCapasDeSector(mapa, context, sector.id)
+                }
+            }
         }
     }
 
-    AndroidView(modifier = Modifier.fillMaxSize(), factory = { mapView })
+    // Tras volver de DescargaSectorScreen con un sector nuevo, redibuja las
+    // capas sobre el estilo ya cargado (sin recrear el mapa ni el servidor de tiles).
+    LaunchedEffect(disparadorActualizacionSector) {
+        if (disparadorActualizacionSector == 0) return@LaunchedEffect
+        val mapa = mapaCargado ?: return@LaunchedEffect
+        val sector = SectorTrabajoRepository(context).listarTodos().firstOrNull() ?: return@LaunchedEffect
+        SectorLayersRenderer.agregarCapasDeSector(mapa, context, sector.id)
+    }
+
+    Box(modifier = Modifier.fillMaxSize()) {
+        AndroidView(modifier = Modifier.fillMaxSize(), factory = { mapView })
+        FloatingActionButton(
+            onClick = onIrADescargarSector,
+            modifier = Modifier
+                .align(Alignment.BottomEnd)
+                .padding(16.dp),
+        ) {
+            Text(text = "⤓")
+        }
+    }
 }
