@@ -1,0 +1,14 @@
+*.iml
+.gradle/
+/local.properties
+.idea/
+.DS_Store
+/build
+/captures
+.externalNativeBuild
+.cxx
+local.properties
+
+# Paquetes de tiles reales (pesan demasiado para el repo; se distribuyen
+# fuera de git, ver README.md de este módulo).
+app/src/main/assets/tiles/*.mbtiles
