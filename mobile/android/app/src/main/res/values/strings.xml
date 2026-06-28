@@ -1,0 +1,6 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="app_name">SGAIE Móvil</string>
+    <string name="mapa_titulo">Mapa offline del sector</string>
+    <string name="mapa_sin_tiles">No se encontró el paquete de tiles del sector (sector-demo.mbtiles). Cópialo en Android/data/ec.cnel.sgaie.movil/files/tiles/ del dispositivo.</string>
+</resources>

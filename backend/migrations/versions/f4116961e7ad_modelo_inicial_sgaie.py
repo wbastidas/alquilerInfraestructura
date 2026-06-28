@@ -10,6 +10,8 @@ from typing import Sequence, Union
 from alembic import op
 import sqlalchemy as sa
 
+from app.db.base import ValorCifrado
+
 
 # revision identifiers, used by Alembic.
 revision: str = 'f4116961e7ad'
@@ -122,10 +124,10 @@ def upgrade() -> None:
     op.create_table('cable_operadora',
     sa.Column('numero_registro', sa.String(length=50), nullable=False),
     sa.Column('nombre_empresa', sa.String(length=250), nullable=False),
-    sa.Column('ruc', app.db.base.ValorCifrado(length=180), nullable=True),
+    sa.Column('ruc', ValorCifrado(20), nullable=True),
     sa.Column('cuenta_contrato', sa.String(length=50), nullable=True),
     sa.Column('representante_legal', sa.String(length=200), nullable=True),
-    sa.Column('representante_cedula', app.db.base.ValorCifrado(length=180), nullable=True),
+    sa.Column('representante_cedula', ValorCifrado(20), nullable=True),
     sa.Column('titulo_habilitante_numero', sa.String(length=100), nullable=True),
     sa.Column('titulo_habilitante_vigencia', sa.Date(), nullable=True),
     sa.Column('arcotel_resolucion', sa.String(length=150), nullable=True),
@@ -217,7 +219,7 @@ def upgrade() -> None:
     op.create_table('responsable_tecnico_zona',
     sa.Column('cable_operadora_id', sa.Integer(), nullable=False),
     sa.Column('nombre', sa.String(length=200), nullable=False),
-    sa.Column('cedula', app.db.base.ValorCifrado(length=180), nullable=True),
+    sa.Column('cedula', ValorCifrado(20), nullable=True),
     sa.Column('cargo', sa.String(length=100), nullable=True),
     sa.Column('telefono', sa.String(length=30), nullable=True),
     sa.Column('correo', sa.String(length=200), nullable=True),
@@ -569,7 +571,7 @@ def upgrade() -> None:
     sa.Column('monto', sa.Numeric(precision=14, scale=2), nullable=False),
     sa.Column('tipo', sa.Enum('PARCIAL', 'TOTAL', name='tipopago', native_enum=False, length=40), nullable=False),
     sa.Column('metodo', sa.Enum('TRANSFERENCIA', 'DEPOSITO', 'CHEQUE', 'TARJETA', 'VENTANILLA', 'PASARELA', name='metodopago', native_enum=False, length=40), nullable=False),
-    sa.Column('referencia_transaccion', app.db.base.ValorCifrado(length=500), nullable=True),
+    sa.Column('referencia_transaccion', ValorCifrado(100), nullable=True),
     sa.Column('fecha_pago', sa.Date(), nullable=False),
     sa.Column('conciliado', sa.Boolean(), nullable=False),
     sa.Column('fecha_conciliacion', sa.Date(), nullable=True),

@@ -1,5 +1,7 @@
 """Fixtures comunes de pruebas: BD SQLite en memoria + cliente HTTP de FastAPI."""
 
+from pathlib import Path
+
 import pytest
 from fastapi.testclient import TestClient
 from sqlalchemy import create_engine
@@ -8,6 +10,7 @@ from sqlalchemy.pool import StaticPool
 
 import app.models  # noqa: F401  (registra todos los modelos en Base.metadata)
 from app.auth.deps import UsuarioContexto
+from app.core.config import obtener_configuracion
 from app.core.security import hashear_password
 from app.db.base import Base
 from app.db.session import obtener_db
@@ -110,6 +113,15 @@ def contexto_de(usuario: Usuario, rol: Rol) -> UsuarioContexto:
         tipo_cuenta=usuario.tipo_cuenta.value,
         cable_operadora_id=usuario.cable_operadora_id,
     )
+
+
+@pytest.fixture()
+def directorio_documentos(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> Path:
+    """Redirige el almacenamiento de documentos (§4.8) a un directorio temporal por test."""
+    monkeypatch.setenv("ALMACENAMIENTO_DOCUMENTOS_DIR", str(tmp_path))
+    obtener_configuracion.cache_clear()
+    yield tmp_path
+    obtener_configuracion.cache_clear()
 
 
 @pytest.fixture()
