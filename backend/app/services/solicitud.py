@@ -21,6 +21,7 @@ from app.core.checklist import TIPOS_CHECKLIST_SOLICITUD
 from app.core.exceptions import PermisoDenegado, RecursoNoEncontrado, TransicionInvalida
 from app.models.autorizacion import Autorizacion
 from app.models.cable_operadora import CableOperadora
+from app.models.contrato import Contrato
 from app.models.documento import Documento
 from app.models.enums import (
     CoberturaGeografica,
@@ -141,6 +142,13 @@ def crear(db: Session, datos: SolicitudCrear, usuario_actual: UsuarioContexto) -
     elif not usuario_actual.es_matriz_o_superadmin:
         if usuario_actual.unidad_negocio_id != operadora.unidad_negocio_id:
             raise PermisoDenegado("No tiene acceso a registros de otra Unidad de Negocio.")
+
+    if datos.contrato_id is not None:
+        contrato = db.get(Contrato, datos.contrato_id)
+        if contrato is None:
+            raise RecursoNoEncontrado("Contrato no encontrado.")
+        if contrato.cable_operadora_id != operadora.id:
+            raise ValueError("El contrato no corresponde a la operadora indicada.")
 
     hoy = date.today()
     solicitud = Solicitud(

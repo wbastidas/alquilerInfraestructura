@@ -167,6 +167,33 @@ def test_proveedor_no_puede_crear_solicitud_para_otra_operadora(
         servicio.crear(db_session, _datos_solicitud(operadora_ajena.id), usuario)
 
 
+def test_contrato_de_otra_operadora_no_puede_usarse_en_ampliacion(
+    db_session: Session, unidad_negocio_a: UnidadNegocio, rol_proveedor: Rol
+):
+    """El contrato indicado en una AMPLIACION debe pertenecer a la operadora indicada."""
+    operadora = _crear_operadora(db_session, unidad_negocio_a.id, "REG-100")
+    otra_operadora = _crear_operadora(db_session, unidad_negocio_a.id, "REG-200")
+    contrato_ajeno = Contrato(
+        cable_operadora_id=otra_operadora.id,
+        unidad_negocio_id=unidad_negocio_a.id,
+        numero_contrato="CONT-901",
+        tipo_cobertura=CoberturaGeografica.LOCAL,
+        estado=EstadoContrato.VIGENTE,
+    )
+    db_session.add(contrato_ajeno)
+    db_session.commit()
+
+    proveedor = _crear_usuario_proveedor(db_session, rol_proveedor, operadora.id)
+    usuario = contexto_de(proveedor, rol_proveedor)
+
+    with pytest.raises(ValueError):
+        servicio.crear(
+            db_session,
+            _datos_solicitud(operadora.id, tipo=TipoSolicitud.AMPLIACION, contrato_id=contrato_ajeno.id),
+            usuario,
+        )
+
+
 def test_listar_alcance_por_rol(
     db_session: Session,
     unidad_negocio_a: UnidadNegocio,
