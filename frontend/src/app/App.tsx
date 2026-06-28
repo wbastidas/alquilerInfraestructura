@@ -6,6 +6,9 @@ import { PaginaLogin } from "@/auth/PaginaLogin";
 import { RutaProtegida } from "@/auth/RutaProtegida";
 import { Layout } from "@/components/Layout";
 import { ListaAlertas } from "@/features/alertas/ListaAlertas";
+import { FormularioAlquilerAnual } from "@/features/alquileres/FormularioAlquilerAnual";
+import { ListaAlquileres } from "@/features/alquileres/ListaAlquileres";
+import { ListaCanon } from "@/features/canon/ListaCanon";
 import { ListaContratos } from "@/features/contratos/ListaContratos";
 import { FormularioOperadora } from "@/features/operadoras/FormularioOperadora";
 import { ListaOperadoras } from "@/features/operadoras/ListaOperadoras";
@@ -28,6 +31,9 @@ export function App() {
                 <Route path="/operadoras" element={<ListaOperadoras />} />
                 <Route path="/operadoras/nueva" element={<FormularioOperadora />} />
                 <Route path="/contratos" element={<ListaContratos />} />
+                <Route path="/alquileres-anuales" element={<ListaAlquileres />} />
+                <Route path="/alquileres-anuales/nuevo" element={<FormularioAlquilerAnual />} />
+                <Route path="/canon" element={<ListaCanon />} />
                 <Route path="/alertas" element={<ListaAlertas />} />
                 <Route path="/usuarios" element={<ListaUsuarios />} />
                 <Route path="/usuarios/nuevo" element={<FormularioUsuario />} />

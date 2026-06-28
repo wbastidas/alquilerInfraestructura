@@ -18,6 +18,8 @@ export function Layout() {
           </NavLink>
           <NavLink to="/operadoras">Operadoras</NavLink>
           <NavLink to="/contratos">Contratos</NavLink>
+          {!esProveedor && <NavLink to="/alquileres-anuales">Alquileres</NavLink>}
+          {!esProveedor && <NavLink to="/canon">Canon</NavLink>}
           {!esProveedor && <NavLink to="/alertas">Alertas</NavLink>}
           {!esProveedor && <NavLink to="/usuarios">Usuarios</NavLink>}
         </nav>
