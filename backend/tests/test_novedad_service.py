@@ -127,6 +127,19 @@ def test_un_de_otra_un_no_puede_crear_novedad(
         servicio.crear(db_session, _datos_novedad(operadora.id, unidad_negocio_a.id), usuario_b)
 
 
+def test_operadora_de_otra_un_no_puede_usarse_en_novedad(
+    db_session: Session, escenario, unidad_negocio_a: UnidadNegocio, unidad_negocio_b: UnidadNegocio
+):
+    """La operadora indicada debe pertenecer a la UN indicada (consistencia entre §6.13 y §6.5)."""
+    _, usuario_un = escenario
+    operadora_otra_un = _crear_operadora(db_session, unidad_negocio_b.id, numero_registro="REG-200")
+
+    with pytest.raises(ValueError):
+        servicio.crear(
+            db_session, _datos_novedad(operadora_otra_un.id, unidad_negocio_a.id), usuario_un
+        )
+
+
 def test_proveedor_puede_listar_solo_sus_novedades(
     db_session: Session, escenario, rol_proveedor: Rol, unidad_negocio_a: UnidadNegocio
 ):

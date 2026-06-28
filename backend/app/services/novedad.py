@@ -25,6 +25,7 @@ from sqlalchemy.orm import Session, selectinload
 from app.auth.deps import UsuarioContexto
 from app.core.config import obtener_configuracion
 from app.core.exceptions import PermisoDenegado, RecursoNoEncontrado, TransicionInvalida
+from app.models.cable_operadora import CableOperadora
 from app.models.documento import Documento
 from app.models.enums import (
     EntidadTipoDocumento,
@@ -86,6 +87,12 @@ def crear(db: Session, datos: NovedadCrear, usuario_actual: UsuarioContexto) -> 
     if usuario_actual.es_proveedor:
         raise PermisoDenegado("El proveedor no puede registrar novedades.")
     verificar_pertenece_a_un(usuario_actual, datos.unidad_negocio_id)
+
+    operadora = db.get(CableOperadora, datos.cable_operadora_id)
+    if operadora is None:
+        raise RecursoNoEncontrado("Operadora de cable no encontrada.")
+    if operadora.unidad_negocio_id != datos.unidad_negocio_id:
+        raise ValueError("La operadora no corresponde a la Unidad de Negocio indicada.")
 
     novedad = Novedad(**datos.model_dump())
     db.add(novedad)
