@@ -13,6 +13,10 @@ import { ListaContratos } from "@/features/contratos/ListaContratos";
 import { FormularioOperadora } from "@/features/operadoras/FormularioOperadora";
 import { ListaOperadoras } from "@/features/operadoras/ListaOperadoras";
 import { PaginaPanel } from "@/features/panel/PaginaPanel";
+import { DetalleFactura } from "@/features/pagos/DetalleFactura";
+import { FormularioFactura } from "@/features/pagos/FormularioFactura";
+import { ListaFacturas } from "@/features/pagos/ListaFacturas";
+import { ReporteMorosidad } from "@/features/pagos/ReporteMorosidad";
 import { DetalleSolicitud } from "@/features/solicitudes/DetalleSolicitud";
 import { FormularioSolicitud } from "@/features/solicitudes/FormularioSolicitud";
 import { ListaSolicitudes } from "@/features/solicitudes/ListaSolicitudes";
@@ -37,6 +41,10 @@ export function App() {
                 <Route path="/alquileres-anuales" element={<ListaAlquileres />} />
                 <Route path="/alquileres-anuales/nuevo" element={<FormularioAlquilerAnual />} />
                 <Route path="/canon" element={<ListaCanon />} />
+                <Route path="/facturas" element={<ListaFacturas />} />
+                <Route path="/facturas/nueva" element={<FormularioFactura />} />
+                <Route path="/facturas/morosidad" element={<ReporteMorosidad />} />
+                <Route path="/facturas/:id" element={<DetalleFactura />} />
                 <Route path="/solicitudes" element={<ListaSolicitudes />} />
                 <Route path="/solicitudes/nueva" element={<FormularioSolicitud />} />
                 <Route path="/solicitudes/:id" element={<DetalleSolicitud />} />

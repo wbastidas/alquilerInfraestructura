@@ -25,14 +25,6 @@ class FacturaCrear(FacturaBase):
     pass
 
 
-class FacturaRespuesta(FacturaBase):
-    model_config = ConfigDict(from_attributes=True)
-
-    id: int
-    total: Decimal
-    estado: EstadoFactura
-
-
 class PagoBase(BaseModel):
     factura_id: int
     monto: Decimal
@@ -53,6 +45,15 @@ class PagoRespuesta(PagoBase):
     cable_operadora_id: int
     conciliado: bool
     fecha_conciliacion: date | None = None
+
+
+class FacturaRespuesta(FacturaBase):
+    model_config = ConfigDict(from_attributes=True)
+
+    id: int
+    total: Decimal
+    estado: EstadoFactura
+    pagos: list[PagoRespuesta] = []
 
 
 class ReporteMorosidadItem(BaseModel):

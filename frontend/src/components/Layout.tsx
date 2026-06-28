@@ -20,6 +20,7 @@ export function Layout() {
           <NavLink to="/contratos">Contratos</NavLink>
           {!esProveedor && <NavLink to="/alquileres-anuales">Alquileres</NavLink>}
           {!esProveedor && <NavLink to="/canon">Canon</NavLink>}
+          <NavLink to="/facturas">Facturas</NavLink>
           <NavLink to="/solicitudes">Solicitudes</NavLink>
           {!esProveedor && <NavLink to="/alertas">Alertas</NavLink>}
           {!esProveedor && <NavLink to="/usuarios">Usuarios</NavLink>}

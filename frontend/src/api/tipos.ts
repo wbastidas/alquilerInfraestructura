@@ -486,6 +486,7 @@ export interface Factura {
   estado: EstadoFactura;
   archivo_xml_id: number | null;
   archivo_pdf_id: number | null;
+  pagos: Pago[];
 }
 
 export interface FacturaCrear {
