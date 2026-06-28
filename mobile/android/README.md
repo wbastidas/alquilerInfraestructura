@@ -1,11 +1,13 @@
-# SGAIE Móvil — Android (scaffold M1+M2)
+# SGAIE Móvil — Android (scaffold M1+M2+M3)
 
 Proyecto Android nativo del componente móvil descrito en
 `mobile/ESPECIFICACION_MOVIL_OFFLINE.md`. Este scaffold cubre las fases
-**M1** (mapa offline con MapLibre, empaquetado de tiles vía MBTiles) y
-**M2** (extracción ArcGIS → GeoPackage, visualización de capas) del
-roadmap (§12). M3+ (edición offline, fotos, cola de sincronización,
-`applyEdits`) sigue fuera de alcance.
+**M1** (mapa offline con MapLibre, empaquetado de tiles vía MBTiles),
+**M2** (extracción ArcGIS → GeoPackage, visualización de capas) y **M3**
+(CRUD offline de postes/redes/equipos, notas de incumplimiento y de
+aceptación de ruta, cola de sincronización) del roadmap (§12). M4+ (fotos
+con geolocalización ya enlazadas a sync real, `applyEdits`/
+`synchronizeReplica` contra ArcGIS) sigue fuera de alcance.
 
 ## Qué incluye este scaffold
 
@@ -69,6 +71,62 @@ roadmap (§12). M3+ (edición offline, fotos, cola de sincronización,
   asíncrona): se asume `async=false` viable para el tamaño de sector
   esperado; revisar si CNEL EP confirma sectores grandes.
 
+### M3 — CRUD offline + cola de sincronización (§4.5, §4.6, §4.9, §5.2)
+
+- **Cola de sincronización / outbox** (`data/ColaSincronizacionRepository.kt`,
+  tabla `cola_sincronizacion`): cada alta/edición/baja local de
+  poste/tramo/equipo/nota encola un registro `PENDIENTE` con
+  `entidad_tipo`, `entidad_id`, `operacion` (CREAR/EDITAR/ELIMINAR) y un
+  snapshot JSON de la entidad, listo para que un futuro worker de sync lo
+  envíe a ArcGIS (`applyEdits`). No se implementó aún ese envío (M4+):
+  esta fase solo construye el outbox y lo alimenta.
+- `actualizar()`/`eliminar()` agregados a `PosteRepository`,
+  `TramoRedRepository` y `EquipoTelecomunicacionRepository`: mutan la fila
+  GeoPackage (marcando `operacion_pendiente = EDITAR`/`ELIMINAR`) y
+  encolan el snapshot correspondiente en la misma operación.
+- Notas de campo, ambas con su propio repositorio y tabla GeoPackage
+  (`data/NotaIncumplimientoRepository.kt`,
+  `data/NotaAceptacionRutaRepository.kt`):
+  - `nota_incumplimiento` (§4.5): tipo, descripción, gravedad y estado de
+    subsanación sobre la entidad seleccionada (poste/tramo/equipo).
+  - `nota_aceptacion_ruta` (§4.6): decisión (ACEPTADA/ACEPTADA_CON_OBSERVACIONES/
+    RECHAZADA) y comentario sobre una ruta propuesta del sector.
+- Selección de entidad por tap sobre el mapa
+  (`map/FeatureSeleccionHandler.kt`), usando la API de features
+  renderizados de MapLibre (consulta capa por capa, en orden de
+  prioridad equipo→poste→tramo, ya que `queryRenderedFeatures` no indica
+  a qué capa pertenece cada resultado cuando se consultan varias a la
+  vez), cableada en `map/OfflineMapScreen.kt` vía
+  `addOnMapClickListener`.
+- Pantallas de edición y de notas (`map/EdicionEntidadScreen.kt`,
+  `map/NotaIncumplimientoScreen.kt`, `map/NotaAceptacionRutaScreen.kt`),
+  navegadas desde `MainActivity.kt`: tocar una entidad en el mapa abre su
+  edición (con accesos a "Eliminar" y "Registrar nota de
+  incumplimiento"); un segundo botón flotante en el mapa abre el
+  formulario de aceptación de ruta para el sector cargado.
+
+### Limitaciones explícitas de M3 (pendientes de confirmación con CNEL EP, §13)
+
+- **Catálogo de `TipoIncumplimiento` sin confirmar**: los valores del
+  enum en `data/GeoPackageContract.kt` son un catálogo de referencia, no
+  el catálogo cerrado real (pendiente con el área normativa/MAPOD de
+  CNEL EP).
+- **Sin dibujo interactivo del trazado verificado**: igual que la
+  extensión geográfica de M2, `nota_aceptacion_ruta` tiene una columna de
+  geometría `LINESTRING` opcional en el modelo, pero la UI
+  (`NotaAceptacionRutaScreen.kt`) todavía no permite dibujarla sobre el
+  mapa; la nota se guarda sin geometría.
+- **Campos enum como texto libre**: los selectores de tipo/estado/gravedad
+  en los formularios de edición y notas son `OutlinedTextField` de texto
+  libre validados contra el enum al guardar (no hay un componente de
+  dropdown/chip en este scaffold todavía), siguiendo el mismo patrón que
+  ya usaba `DescargaSectorScreen.kt` en M2.
+- **API de bajo nivel de `geopackage-android` sin verificar en este
+  sandbox**: `FeatureDao.queryForIdRow`/`.update`/`.deleteById`, usados en
+  los nuevos métodos `actualizar()`/`eliminar()`, se escribieron según la
+  API pública documentada de la librería, pero no pudieron probarse
+  contra una compilación real (ver limitación del entorno más abajo).
+
 ## Limitación conocida de este entorno (sandbox de desarrollo)
 
 Este contenedor tiene Java 21 y Gradle 8.14.3 instalados, pero **no tiene
@@ -122,11 +180,12 @@ en este entorno:
 6. Si no copias ningún `.mbtiles`, la app muestra el mensaje
    "No se encontró el paquete de tiles del sector..." en lugar de fallar.
 
-## Próximos pasos (fuera de alcance de M1+M2)
+## Próximos pasos (fuera de alcance de M1+M2+M3)
 
-- M3+: CRUD de postes/redes/equipos en campo, notas de
-  incumplimiento/aceptación de ruta, fotos geolocalizadas, cola de
-  sincronización (`cola_sincronizacion`) y sync de vuelta a ArcGIS
-  (`applyEdits`/`synchronizeReplica`).
+- M4+: fotos geolocalizadas adjuntas a notas/entidades, worker que drena
+  `cola_sincronizacion` y sincroniza de vuelta a ArcGIS
+  (`applyEdits`/`synchronizeReplica`), resolución de conflictos, dibujo
+  interactivo de geometrías (extensión de descarga, trazado de ruta
+  verificada) directamente sobre el mapa.
 
 Ver el detalle completo de fases en `mobile/ESPECIFICACION_MOVIL_OFFLINE.md`.

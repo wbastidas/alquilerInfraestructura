@@ -2,6 +2,7 @@ package ec.cnel.sgaie.movil.map
 
 import android.content.Context
 import android.graphics.Color
+import ec.cnel.sgaie.movil.data.EntidadTipo
 import ec.cnel.sgaie.movil.data.EquipoTelecomunicacion
 import ec.cnel.sgaie.movil.data.EquipoTelecomunicacionRepository
 import ec.cnel.sgaie.movil.data.Poste
@@ -32,14 +33,22 @@ import org.maplibre.android.style.sources.GeoJsonSource
 object SectorLayersRenderer {
 
     private const val SOURCE_POSTE = "sgaie-postes-source"
-    private const val LAYER_POSTE = "sgaie-postes-layer"
+    const val LAYER_POSTE = "sgaie-postes-layer"
     private const val SOURCE_TRAMO_RED = "sgaie-tramos-red-source"
-    private const val LAYER_TRAMO_RED = "sgaie-tramos-red-layer"
+    const val LAYER_TRAMO_RED = "sgaie-tramos-red-layer"
     private const val SOURCE_EQUIPO = "sgaie-equipos-source"
-    private const val LAYER_EQUIPO = "sgaie-equipos-layer"
+    const val LAYER_EQUIPO = "sgaie-equipos-layer"
 
     private const val PROP_ESTADO_FISICO = "estado_fisico"
     private const val PROP_TIPO_RED = "tipo_red"
+
+    /** Traduce un id de capa de [ec.cnel.sgaie.movil.map.FeatureSeleccionHandler] al tipo de entidad correspondiente. */
+    fun entidadTipoDeCapa(layerId: String): EntidadTipo? = when (layerId) {
+        LAYER_POSTE -> EntidadTipo.POSTE
+        LAYER_TRAMO_RED -> EntidadTipo.TRAMO_RED
+        LAYER_EQUIPO -> EntidadTipo.EQUIPO
+        else -> null
+    }
 
     /** Agrega (o refresca, si ya existían) las capas del sector [sectorTrabajoId] sobre [mapa]. */
     fun agregarCapasDeSector(mapa: MapLibreMap, context: Context, sectorTrabajoId: Long) {

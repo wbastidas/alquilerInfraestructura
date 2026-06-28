@@ -3,9 +3,11 @@ package ec.cnel.sgaie.movil.data
 import android.content.Context
 import mil.nga.geopackage.db.GeoPackageDataType
 import mil.nga.geopackage.features.user.FeatureColumn
+import mil.nga.geopackage.features.user.FeatureRow
 import mil.nga.geopackage.geom.GeoPackageGeometryData
 import mil.nga.sf.GeometryType
 import mil.nga.sf.Point
+import org.json.JSONObject
 import java.time.Instant
 
 /** Dominio §4.2: poste de la red, dentro de un sector_trabajo. */
@@ -34,6 +36,8 @@ private const val COL_FECHA_INSPECCION = "fecha_inspeccion"
 private const val COL_OBSERVACIONES = "observaciones"
 
 class PosteRepository(private val context: Context) {
+
+    private val colaSincronizacion = ColaSincronizacionRepository(context)
 
     fun crearTablaSiNoExiste() {
         GeoPackageProvider.crearTablaSiNoExiste(
@@ -73,6 +77,64 @@ class PosteRepository(private val context: Context) {
         return dao.create(fila)
     }
 
+    /**
+     * Actualiza el poste y encola un `EDITAR` en `cola_sincronizacion` (§5.2).
+     *
+     * `# NOTA: queryForIdRow/update sobre FeatureDao no se pudo verificar contra
+     * la versión real de geopackage-android resuelta (§13/limitaciones de este
+     * entorno), igual que el resto de la API de bajo nivel usada en este scaffold.`
+     */
+    fun actualizar(poste: Poste): Boolean {
+        crearTablaSiNoExiste()
+        val dao = GeoPackageProvider.obtener(context).getFeatureDao(GeoPackageContract.TABLA_POSTE)
+        val fila = dao.queryForIdRow(poste.id) ?: return false
+        fila.geometry = GeoPackageGeometryData(poste.geometria)
+        fila.setValue(GeoPackageContract.COL_GLOBAL_ID, poste.globalId)
+        fila.setValue(COL_SECTOR_TRABAJO_ID, poste.sectorTrabajoId)
+        fila.setValue(COL_CODIGO_POSTE, poste.codigoPoste)
+        fila.setValue(COL_TIPO_POSTE, poste.tipoPoste.name)
+        fila.setValue(COL_ALTURA_M, poste.alturaM)
+        fila.setValue(COL_CAPACIDAD_CABLES, poste.capacidadCables)
+        fila.setValue(COL_ESTADO_FISICO, poste.estadoFisico.name)
+        fila.setValue(COL_FECHA_INSPECCION, poste.fechaInspeccion?.toString())
+        fila.setValue(COL_OBSERVACIONES, poste.observaciones)
+        fila.setValue(GeoPackageContract.COL_OPERACION_PENDIENTE, OperacionPendiente.EDITAR.name)
+        dao.update(fila)
+
+        val posteActualizado = poste.copy(operacionPendiente = OperacionPendiente.EDITAR)
+        colaSincronizacion.encolar(
+            entidadTipo = EntidadTipo.POSTE,
+            entidadId = poste.id,
+            operacion = OperacionSincronizacion.EDITAR,
+            payloadJson = payloadJson(posteActualizado),
+        )
+        return true
+    }
+
+    /** Elimina el poste y encola un `ELIMINAR` en `cola_sincronizacion` con el último snapshot conocido (§5.2). */
+    fun eliminar(id: Long): Boolean {
+        crearTablaSiNoExiste()
+        val dao = GeoPackageProvider.obtener(context).getFeatureDao(GeoPackageContract.TABLA_POSTE)
+        val fila = dao.queryForIdRow(id) ?: return false
+        val poste = filaAPoste(fila)
+        dao.deleteById(id)
+
+        colaSincronizacion.encolar(
+            entidadTipo = EntidadTipo.POSTE,
+            entidadId = id,
+            operacion = OperacionSincronizacion.ELIMINAR,
+            payloadJson = payloadJson(poste.copy(operacionPendiente = OperacionPendiente.ELIMINAR)),
+        )
+        return true
+    }
+
+    fun obtenerPorId(id: Long): Poste? {
+        crearTablaSiNoExiste()
+        val dao = GeoPackageProvider.obtener(context).getFeatureDao(GeoPackageContract.TABLA_POSTE)
+        val fila = dao.queryForIdRow(id) ?: return null
+        return filaAPoste(fila)
+    }
+
     fun listarPorSector(sectorTrabajoId: Long): List<Poste> {
         crearTablaSiNoExiste()
         val dao = GeoPackageProvider.obtener(context).getFeatureDao(GeoPackageContract.TABLA_POSTE)
@@ -81,24 +143,39 @@ class PosteRepository(private val context: Context) {
             while (cursor.moveToNext()) {
                 val fila = cursor.row
                 if ((fila.getValue(COL_SECTOR_TRABAJO_ID) as Number).toLong() != sectorTrabajoId) continue
-                resultado += Poste(
-                    id = fila.id,
-                    globalId = fila.getValue(GeoPackageContract.COL_GLOBAL_ID) as String,
-                    sectorTrabajoId = sectorTrabajoId,
-                    codigoPoste = fila.getValue(COL_CODIGO_POSTE) as String,
-                    geometria = fila.geometry.geometry as Point,
-                    tipoPoste = TipoPoste.valueOf(fila.getValue(COL_TIPO_POSTE) as String),
-                    alturaM = fila.getValue(COL_ALTURA_M) as Double?,
-                    capacidadCables = (fila.getValue(COL_CAPACIDAD_CABLES) as Number?)?.toInt(),
-                    estadoFisico = EstadoFisicoPoste.valueOf(fila.getValue(COL_ESTADO_FISICO) as String),
-                    fechaInspeccion = (fila.getValue(COL_FECHA_INSPECCION) as String?)?.let(Instant::parse),
-                    observaciones = fila.getValue(COL_OBSERVACIONES) as String?,
-                    operacionPendiente = OperacionPendiente.valueOf(
-                        fila.getValue(GeoPackageContract.COL_OPERACION_PENDIENTE) as String,
-                    ),
-                )
+                resultado += filaAPoste(fila)
             }
         }
         return resultado
     }
+
+    private fun filaAPoste(fila: FeatureRow): Poste = Poste(
+        id = fila.id,
+        globalId = fila.getValue(GeoPackageContract.COL_GLOBAL_ID) as String,
+        sectorTrabajoId = (fila.getValue(COL_SECTOR_TRABAJO_ID) as Number).toLong(),
+        codigoPoste = fila.getValue(COL_CODIGO_POSTE) as String,
+        geometria = fila.geometry.geometry as Point,
+        tipoPoste = TipoPoste.valueOf(fila.getValue(COL_TIPO_POSTE) as String),
+        alturaM = fila.getValue(COL_ALTURA_M) as Double?,
+        capacidadCables = (fila.getValue(COL_CAPACIDAD_CABLES) as Number?)?.toInt(),
+        estadoFisico = EstadoFisicoPoste.valueOf(fila.getValue(COL_ESTADO_FISICO) as String),
+        fechaInspeccion = (fila.getValue(COL_FECHA_INSPECCION) as String?)?.let(Instant::parse),
+        observaciones = fila.getValue(COL_OBSERVACIONES) as String?,
+        operacionPendiente = OperacionPendiente.valueOf(
+            fila.getValue(GeoPackageContract.COL_OPERACION_PENDIENTE) as String,
+        ),
+    )
+
+    private fun payloadJson(poste: Poste): String = JSONObject().apply {
+        put("id", poste.id)
+        put("global_id", poste.globalId)
+        put("sector_trabajo_id", poste.sectorTrabajoId)
+        put("codigo_poste", poste.codigoPoste)
+        put("tipo_poste", poste.tipoPoste.name)
+        put("altura_m", poste.alturaM)
+        put("capacidad_cables", poste.capacidadCables)
+        put("estado_fisico", poste.estadoFisico.name)
+        put("fecha_inspeccion", poste.fechaInspeccion?.toString())
+        put("observaciones", poste.observaciones)
+    }.toString()
 }
