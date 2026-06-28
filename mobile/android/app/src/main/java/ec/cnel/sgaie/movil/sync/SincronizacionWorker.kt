@@ -33,6 +33,13 @@ class SincronizacionWorker(
         val urlServicio = SincronizacionPreferencias.obtenerUrl(applicationContext) ?: return Result.success()
         val token = SincronizacionPreferencias.obtenerToken(applicationContext) ?: return Result.success()
 
+        // Si hay una descarga de sector o una sincronización manual en curso
+        // en este mismo dispositivo, se reintenta más tarde en vez de competir
+        // por el mismo GeoPackage local (§SincronizacionLock).
+        if (!SincronizacionLock.mutex.tryLock()) {
+            return Result.retry()
+        }
+
         return try {
             val tokenProvider = ArcGisTokenProvider { token }
             val restClient = ArcGisRestClient(urlServicio, tokenProvider)
@@ -49,6 +56,8 @@ class SincronizacionWorker(
             Result.success()
         } catch (excepcion: Exception) {
             Result.retry()
+        } finally {
+            SincronizacionLock.mutex.unlock()
         }
     }
 

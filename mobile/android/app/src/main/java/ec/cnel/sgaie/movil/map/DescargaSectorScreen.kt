@@ -26,6 +26,7 @@ import ec.cnel.sgaie.movil.sync.ArcGisRestClient
 import ec.cnel.sgaie.movil.sync.ArcGisSectorExtractor
 import ec.cnel.sgaie.movil.sync.ArcGisTokenProvider
 import ec.cnel.sgaie.movil.sync.Envelope
+import ec.cnel.sgaie.movil.sync.SincronizacionLock
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
@@ -99,6 +100,11 @@ fun DescargaSectorScreen(onSectorDescargado: () -> Unit) {
                     return@Button
                 }
 
+                if (!SincronizacionLock.mutex.tryLock()) {
+                    error = "Ya hay una sincronización o descarga en curso en este dispositivo; espera a que termine."
+                    return@Button
+                }
+
                 error = null
                 enProgreso = true
                 scope.launch {
@@ -123,6 +129,7 @@ fun DescargaSectorScreen(onSectorDescargado: () -> Unit) {
                         error = "Falló la descarga del sector: ${excepcion.message}"
                     } finally {
                         enProgreso = false
+                        SincronizacionLock.mutex.unlock()
                     }
                 }
             }) {

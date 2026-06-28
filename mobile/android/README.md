@@ -224,6 +224,21 @@ plano) del roadmap (§12).
   `sync/SincronizacionPreferencias.kt` (SharedPreferences). Se programa al
   abrir la app (`MainActivity.onCreate`) y de nuevo tras cada
   sincronización manual.
+- `sync/SincronizacionLock.kt`: exclusión mutua (`kotlinx.coroutines.sync.Mutex`)
+  para que la extracción de un sector (`DescargaSectorScreen`) y la subida
+  de cambios (`SincronizacionScreen` o `SincronizacionWorker` en segundo
+  plano) nunca corran en simultáneo **dentro del mismo dispositivo**, ya
+  que ambas leen/escriben el mismo GeoPackage local. Los tres disparadores
+  intentan `tryLock()` antes de empezar: las dos pantallas muestran un
+  error inmediato ("ya hay una sincronización o descarga en curso") si el
+  candado está tomado, y el worker periódico simplemente devuelve
+  `Result.retry()` para reintentar más tarde. Esto **no** resuelve
+  concurrencia *entre* dispositivos distintos —cada dispositivo ya tiene su
+  propio GeoPackage y su propia `cola_sincronizacion` (outbox)
+  independientes, y llaman directamente a la REST API de ArcGIS, diseñada
+  para atender múltiples clientes a la vez—; el único caso cruzado real,
+  dos dispositivos editando el mismo elemento, ya lo cubre la resolución de
+  conflictos de §5.4 descrita arriba.
 
 ### Limitaciones explícitas de M5 (pendientes de confirmación con CNEL EP, §13)
 

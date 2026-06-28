@@ -30,6 +30,7 @@ import ec.cnel.sgaie.movil.data.TramoRedRepository
 import ec.cnel.sgaie.movil.sync.ArcGisConfig
 import ec.cnel.sgaie.movil.sync.ArcGisRestClient
 import ec.cnel.sgaie.movil.sync.ArcGisTokenProvider
+import ec.cnel.sgaie.movil.sync.SincronizacionLock
 import ec.cnel.sgaie.movil.sync.SincronizacionPreferencias
 import ec.cnel.sgaie.movil.sync.SincronizadorCambios
 import ec.cnel.sgaie.movil.sync.SincronizacionWorker
@@ -83,6 +84,11 @@ fun SincronizacionScreen(
                     error = "Completa la URL del servicio y el token."
                     return@Button
                 }
+                if (!SincronizacionLock.mutex.tryLock()) {
+                    error = "Ya hay una sincronización o descarga en curso en este dispositivo; espera a que termine."
+                    return@Button
+                }
+
                 error = null
                 resultado = null
                 enProgreso = true
@@ -110,6 +116,7 @@ fun SincronizacionScreen(
                         error = "Falló la sincronización: ${excepcion.message}"
                     } finally {
                         enProgreso = false
+                        SincronizacionLock.mutex.unlock()
                     }
                 }
             }) {
