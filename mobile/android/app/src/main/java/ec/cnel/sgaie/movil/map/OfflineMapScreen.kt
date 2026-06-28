@@ -5,6 +5,9 @@ import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.padding
+import androidx.compose.material3.Button
+import androidx.compose.material3.DropdownMenu
+import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.FloatingActionButton
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -24,6 +27,7 @@ import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.LifecycleEventObserver
 import ec.cnel.sgaie.movil.R
 import ec.cnel.sgaie.movil.data.EntidadTipo
+import ec.cnel.sgaie.movil.data.SectorTrabajo
 import ec.cnel.sgaie.movil.data.SectorTrabajoRepository
 import org.maplibre.android.camera.CameraPosition
 import org.maplibre.android.geometry.LatLng
@@ -54,6 +58,8 @@ fun OfflineMapScreen(
     var tileServer by remember { mutableStateOf<OfflineTileServer?>(null) }
     var mapaCargado by remember { mutableStateOf<MapLibreMap?>(null) }
     var sectorActualId by remember { mutableStateOf<Long?>(null) }
+    var sectores by remember { mutableStateOf<List<SectorTrabajo>>(emptyList()) }
+    var menuSectorExpandido by remember { mutableStateOf(false) }
 
     if (!mbtilesFile.exists()) {
         Box(modifier = Modifier.fillMaxSize()) {
@@ -99,10 +105,12 @@ fun OfflineMapScreen(
                     .build()
                 mapaCargado = mapa
 
-                // M2: hasta que exista un selector de sector (la pantalla de
-                // descarga solo agrega sectores nuevos), se dibuja el primer
-                // sector ya extraído al GeoPackage local, si lo hay.
-                val sector = SectorTrabajoRepository(context).listarTodos().firstOrNull()
+                // Un dispositivo puede tener varios sectores descargados (cada
+                // descarga agrega una fila nueva, sin pisar las anteriores);
+                // al abrir el mapa se muestra el último y el selector de abajo
+                // permite cambiar entre todos los disponibles.
+                sectores = SectorTrabajoRepository(context).listarTodos()
+                val sector = sectores.lastOrNull()
                 if (sector != null) {
                     sectorActualId = sector.id
                     SectorLayersRenderer.agregarCapasDeSector(mapa, context, sector.id)
@@ -128,13 +136,40 @@ fun OfflineMapScreen(
     LaunchedEffect(disparadorActualizacionSector) {
         if (disparadorActualizacionSector == 0) return@LaunchedEffect
         val mapa = mapaCargado ?: return@LaunchedEffect
-        val sector = SectorTrabajoRepository(context).listarTodos().firstOrNull() ?: return@LaunchedEffect
+        sectores = SectorTrabajoRepository(context).listarTodos()
+        val sector = sectores.lastOrNull() ?: return@LaunchedEffect
         sectorActualId = sector.id
         SectorLayersRenderer.agregarCapasDeSector(mapa, context, sector.id)
     }
 
     Box(modifier = Modifier.fillMaxSize()) {
         AndroidView(modifier = Modifier.fillMaxSize(), factory = { mapView })
+        if (sectores.isNotEmpty()) {
+            Box(
+                modifier = Modifier
+                    .align(Alignment.TopStart)
+                    .padding(16.dp),
+            ) {
+                val sectorSeleccionado = sectores.firstOrNull { it.id == sectorActualId }
+                Button(onClick = { menuSectorExpandido = true }) {
+                    Text(text = sectorSeleccionado?.codigo ?: "Sector")
+                }
+                DropdownMenu(expanded = menuSectorExpandido, onDismissRequest = { menuSectorExpandido = false }) {
+                    sectores.forEach { sector ->
+                        DropdownMenuItem(
+                            text = { Text(text = "${sector.codigo} — ${sector.nombre}") },
+                            onClick = {
+                                menuSectorExpandido = false
+                                sectorActualId = sector.id
+                                mapaCargado?.let { mapa ->
+                                    SectorLayersRenderer.agregarCapasDeSector(mapa, context, sector.id)
+                                }
+                            },
+                        )
+                    }
+                }
+            }
+        }
         Column(
             modifier = Modifier
                 .align(Alignment.BottomEnd)

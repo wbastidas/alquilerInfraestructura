@@ -49,6 +49,15 @@ plano) del roadmap (§12).
   accesible desde el botón flotante del mapa, que captura los datos
   mínimos (URL del servicio, token, extensión geográfica) y dispara el
   orquestador; al finalizar, vuelve al mapa y redibuja las capas.
+- **Varios sectores por dispositivo**: cada descarga agrega una fila nueva
+  en `sector_trabajo` (y sus postes/tramos/equipos asociados por FK), sin
+  pisar las descargas anteriores — un mismo dispositivo puede acumular
+  tantos sectores como necesite. `map/OfflineMapScreen.kt` muestra el
+  último descargado por defecto y expone un selector (botón con el código
+  del sector activo + `DropdownMenu`) para cambiar entre todos los
+  disponibles; `SectorLayersRenderer.agregarCapasDeSector` reemplaza el
+  contenido de las fuentes `GeoJsonSource` en cada cambio, así que nunca
+  se acumulan capas de sectores distintos sobre el mapa a la vez.
 - `INTERNET`/`ACCESS_NETWORK_STATE` en el manifiesto: única operación
   online del componente (la extracción); el resto del trabajo de campo
   sigue siendo 100% offline.
