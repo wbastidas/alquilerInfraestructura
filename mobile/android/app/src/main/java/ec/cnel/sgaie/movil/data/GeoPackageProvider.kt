@@ -5,12 +5,12 @@ import mil.nga.geopackage.GeoPackage
 import mil.nga.geopackage.GeoPackageFactory
 import mil.nga.geopackage.features.columns.GeometryColumns
 import mil.nga.geopackage.features.user.FeatureColumn
+import mil.nga.geopackage.features.user.FeatureTableMetadata
 import mil.nga.geopackage.geom.GeoPackageGeometryData
 import mil.nga.geopackage.srs.SpatialReferenceSystem
 import mil.nga.proj.ProjectionConstants
+import mil.nga.proj.ProjectionFactory
 import mil.nga.sf.GeometryType
-import mil.nga.sf.proj.Projection
-import mil.nga.sf.proj.ProjectionFactory
 
 /**
  * Punto único de acceso al GeoPackage local (mobile/ESPECIFICACION_MOVIL_OFFLINE.md
@@ -23,10 +23,8 @@ import mil.nga.sf.proj.ProjectionFactory
  * para que el archivo sea abrible con QGIS/ArcGIS Pro (requisito explícito
  * del documento de diseño, no una preferencia estética).
  *
- * NOTA: la firma exacta de `createFeatureTable` varía entre versiones de la
- * librería (no se pudo fijar/verificar la versión por falta de acceso a
- * Maven Central en este entorno, ver app/build.gradle.kts). Validar contra
- * la versión resuelta al compilar con el SDK real.
+ * Firmas verificadas contra geopackage-android 6.7.5 / geopackage-core 6.6.7
+ * (FeatureTableMetadata.create + SpatialReferenceSystemDao.getOrCreate).
  */
 object GeoPackageProvider {
 
@@ -50,7 +48,16 @@ object GeoPackageProvider {
         return manager.open(nombre)
     }
 
-    /** Crea la tabla de feature `nombreTabla` si todavía no existe, con sus columnas no-geométricas y una sola columna de geometría. */
+    /**
+     * Crea la tabla de feature `nombreTabla` si todavía no existe, con sus
+     * columnas no-geométricas y una sola columna de geometría.
+     *
+     * [geometriaOpcional] queda solo documental: `FeatureTableMetadata` crea
+     * la columna de geometría siempre nullable, lo cual cubre ambos casos
+     * (las tablas sin geometría real —cola/conflictos/notas— simplemente
+     * dejan la columna en NULL).
+     */
+    @Suppress("UNUSED_PARAMETER")
     fun crearTablaSiNoExiste(
         geoPackage: GeoPackage,
         nombreTabla: String,
@@ -60,15 +67,8 @@ object GeoPackageProvider {
     ) {
         if (geoPackage.isFeatureTable(nombreTabla)) return
 
-        val proyeccion: Projection = ProjectionFactory.getProjection(SRS_WGS84)
-        val srs: SpatialReferenceSystem = geoPackage.spatialReferenceSystemDao
-            .getOrCreateCode(proyeccion.authority, proyeccion.code.toLong())
-
-        val columnas = mutableListOf(
-            FeatureColumn.createPrimaryKeyColumn(GeoPackageContract.COL_ID),
-            FeatureColumn.createGeometryColumn(COL_GEOMETRIA, tipoGeometria, geometriaOpcional, null),
-        )
-        columnas.addAll(columnasAdicionales)
+        val proyeccion = ProjectionFactory.getProjection(SRS_WGS84)
+        val srs: SpatialReferenceSystem = geoPackage.spatialReferenceSystemDao.getOrCreate(proyeccion)
 
         val geometryColumns = GeometryColumns()
         geometryColumns.tableName = nombreTabla
@@ -78,7 +78,11 @@ object GeoPackageProvider {
         geometryColumns.m = 0
         geometryColumns.srs = srs
 
-        geoPackage.createFeatureTable(nombreTabla, columnas, geometryColumns)
+        // FeatureTableMetadata genera por sí misma la columna id (PK) y la de
+        // geometría a partir de geometryColumns; solo se pasan las adicionales.
+        geoPackage.createFeatureTable(
+            FeatureTableMetadata.create(geometryColumns, GeoPackageContract.COL_ID, columnasAdicionales),
+        )
     }
 
     const val COL_GEOMETRIA = "geometria"

@@ -72,7 +72,9 @@ fun EdicionEntidadScreen(
             onRegistrarIncumplimiento = { onRegistrarIncumplimiento(EntidadTipo.EQUIPO, entidadId) },
             onTomarFotografia = { onTomarFotografia(EntidadTipo.EQUIPO, entidadId) },
         )
-        EntidadTipo.SECTOR -> Text(text = "El sector de trabajo no se edita desde aquí.")
+        // SECTOR y las notas nunca llegan aquí desde la selección del mapa
+        // (FeatureSeleccionHandler solo devuelve poste/tramo/equipo).
+        else -> Text(text = "Este tipo de elemento no se edita desde aquí.")
     }
 }
 

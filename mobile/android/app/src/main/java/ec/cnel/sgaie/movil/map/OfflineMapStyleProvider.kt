@@ -38,8 +38,10 @@ object OfflineMapStyleProvider {
         """.trimIndent()
     }
 
+    // TileSet no expone tamaño de tile; ese parámetro se pasa al construir
+    // el RasterSource (abajo) o en el JSON del estilo (arriba).
     fun construirTileSet(tileUrlTemplate: String): TileSet =
-        TileSet("2.1.0", tileUrlTemplate).apply { tileSize = TILE_SIZE }
+        TileSet("2.1.0", tileUrlTemplate)
 
     fun construirRasterSource(tileUrlTemplate: String): RasterSource =
         RasterSource(SOURCE_ID, construirTileSet(tileUrlTemplate), TILE_SIZE)
