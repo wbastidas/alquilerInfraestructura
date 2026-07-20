@@ -318,6 +318,29 @@ plano) del roadmap (§12).
   íconos Material (`Refresh`/`Add`/`Check`) y `contentDescription` de
   accesibilidad en lugar de glifos de texto.
 
+## Compilar el APK / probar en un dispositivo real
+
+El workflow `.github/workflows/android-apk.yml` compila `assembleDebug` en
+GitHub Actions en cada push que toque `mobile/android/**` (o manualmente
+con *Run workflow*) y publica el APK como artefacto del run:
+
+1. En GitHub: pestaña **Actions** → workflow **"APK Android (SGAIE
+   Móvil)"** → abrir el run más reciente en verde.
+2. Descargar el artefacto **`sgaie-movil-debug-apk`** (zip, retención de
+   30 días) y descomprimirlo: dentro está `app-debug.apk`.
+3. En el dispositivo Android (8.0+): habilitar la instalación de orígenes
+   desconocidos e instalar el APK (firma debug, solo para pruebas — la
+   firma de release queda pendiente para distribución real).
+4. Para ver el mapa base offline hay que copiar un `sector-demo.mbtiles`
+   en `Android/data/ec.cnel.sgaie.movil/files/tiles/` (ver M1).
+
+El primer build real en CI validó la compilación completa del módulo
+(dependencias resueltas desde Google/Maven Central y `compileDebugKotlin`
+en verde), lo que despeja las notas de "API de bajo nivel sin verificar
+compilación" de los hitos M2-M5: ahora todo el código compila contra las
+versiones reales de las librerías; queda pendiente únicamente la prueba
+funcional contra un Feature Service real de CNEL EP.
+
 ## Limitación conocida de este entorno (sandbox de desarrollo)
 
 Este contenedor tiene Java 21 y Gradle 8.14.3 instalados, pero **no tiene
