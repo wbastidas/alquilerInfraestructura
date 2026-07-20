@@ -5,10 +5,15 @@ import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.padding
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Add
+import androidx.compose.material.icons.filled.Check
+import androidx.compose.material.icons.filled.Refresh
 import androidx.compose.material3.Button
 import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.FloatingActionButton
+import androidx.compose.material3.Icon
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
@@ -177,10 +182,10 @@ fun OfflineMapScreen(
             verticalArrangement = Arrangement.spacedBy(8.dp),
         ) {
             FloatingActionButton(onClick = onIrASincronizar) {
-                Text(text = "⇅")
+                Icon(imageVector = Icons.Default.Refresh, contentDescription = "Sincronizar cambios")
             }
             FloatingActionButton(onClick = onIrADescargarSector) {
-                Text(text = "⤓")
+                Icon(imageVector = Icons.Default.Add, contentDescription = "Descargar sector de trabajo")
             }
         }
         sectorActualId?.let { sectorId ->
@@ -190,7 +195,7 @@ fun OfflineMapScreen(
                     .align(Alignment.BottomStart)
                     .padding(16.dp),
             ) {
-                Text(text = "✓")
+                Icon(imageVector = Icons.Default.Check, contentDescription = "Registrar aceptación de ruta")
             }
         }
     }

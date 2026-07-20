@@ -58,6 +58,9 @@ dependencies {
     implementation("androidx.compose.ui:ui-graphics")
     implementation("androidx.compose.ui:ui-tooling-preview")
     implementation("androidx.compose.material3:material3")
+    // Íconos estándar (flecha atrás, sincronizar, agregar, check) usados en
+    // la barra superior y los botones flotantes del mapa.
+    implementation("androidx.compose.material:material-icons-core")
 
     // Render del mapa offline (sin SDK comercial, sin dependencia de ArcGIS Runtime).
     // TODO: confirmar la última versión estable disponible en momento de build real
@@ -82,6 +85,11 @@ dependencies {
     // Sincronización periódica en segundo plano (M5, §5.3), con reintento
     // automático respetando restricciones del sistema (solo con red disponible).
     implementation("androidx.work:work-runtime-ktx:2.9.1")
+
+    // Cifrado en reposo del token/URL de ArcGIS persistidos para el worker
+    // periódico (EncryptedSharedPreferences respaldado por Android Keystore),
+    // en vez de SharedPreferences en claro.
+    implementation("androidx.security:security-crypto:1.1.0-alpha06")
 
     // Fotografías geolocalizadas (M3/M4, §4.7, §7): captura con CameraX,
     // último fix de ubicación de alta precisión con FusedLocationProvider, y

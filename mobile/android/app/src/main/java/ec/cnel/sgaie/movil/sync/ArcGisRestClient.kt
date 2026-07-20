@@ -32,6 +32,16 @@ class ArcGisRestClient(
     private val httpClient: OkHttpClient = OkHttpClient(),
 ) {
 
+    init {
+        // El token viaja en el cuerpo/URL de cada request: exigir TLS evita
+        // que se filtre en claro por una URL mal tipeada (Android ya bloquea
+        // cleartext por defecto desde API 28; esto lo hace explícito y con
+        // mensaje entendible en la UI).
+        require(featureServiceUrl.startsWith("https://")) {
+            "La URL del Feature Service debe comenzar con https:// (el token de ArcGIS nunca debe viajar sin cifrar)."
+        }
+    }
+
     /**
      * Solicita una réplica del Feature Service filtrada por [envelope] para las [capas]
      * indicadas, y descarga el `.geodatabase` (SQLite) resultante a [destino].
@@ -142,6 +152,12 @@ class ArcGisRestClient(
      * no admite `useGlobalIds` como `applyEdits`.
      */
     fun obtenerObjectIdPorGlobalId(layerId: Int, globalId: String): Long? {
+        // El globalId se interpola en la cláusula `where`: solo se admite el
+        // alfabeto de un GUID de ArcGIS (hex, guiones y llaves), que no puede
+        // cerrar la comilla ni inyectar operadores.
+        require(GLOBAL_ID_FORMATO_GUID.matches(globalId)) {
+            "GlobalID con formato inesperado: $globalId"
+        }
         val url = "$featureServiceUrl/$layerId/query".toHttpUrl().newBuilder()
             .addQueryParameter("f", "json")
             .addQueryParameter("token", tokenProvider.obtenerToken())
@@ -198,6 +214,10 @@ class ArcGisRestClient(
             throw IOException("addAttachment devolvió error: ${error.optString("message")}")
         }
         return respuestaJson
+    }
+
+    private companion object {
+        val GLOBAL_ID_FORMATO_GUID = Regex("[0-9a-fA-F{}-]+")
     }
 
     private fun descargarArchivo(url: String, destino: File) {

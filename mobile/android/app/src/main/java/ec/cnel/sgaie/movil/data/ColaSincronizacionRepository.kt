@@ -96,7 +96,11 @@ class ColaSincronizacionRepository(private val context: Context) {
                 resultado += filaAItem(fila.id, fila)
             }
         }
-        return resultado
+        // FIFO explícito: los cambios se envían en el mismo orden en que se
+        // registraron localmente (el id autoincremental refleja el orden de
+        // inserción), para que una edición posterior de la misma entidad
+        // nunca se aplique antes que su alta.
+        return resultado.sortedBy { it.id }
     }
 
     /** Igual que [listarPendientes] pero sin filtrar por estado, para recomputar el estado de un sector tras un ciclo de sincronización (§5.3/§5.4). */

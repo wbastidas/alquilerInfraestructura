@@ -281,12 +281,42 @@ plano) del roadmap (§12).
   compilación real.
 - **Sin login OAuth2 real**: la URL/token de ArcGIS persistidos para el
   worker periódico son los mismos capturados manualmente en
-  `SincronizacionScreen`, guardados sin cifrar en SharedPreferences;
-  placeholder hasta tener un flujo OAuth2 real (§9).
+  `SincronizacionScreen`; placeholder hasta tener un flujo OAuth2 real
+  (§9). Desde el endurecimiento posterior a M5 se guardan cifrados en
+  reposo (`EncryptedSharedPreferences`, ver sección de seguridad abajo),
+  pero el flujo de captura manual sigue siendo temporal.
 - **Resolución de conflictos limitada a "Descartar"**: `ConflictosPendientesScreen`
   solo permite quitar un conflicto de la lista una vez resuelto
   manualmente fuera de la app (p. ej. en ArcGIS Pro); no ofrece "forzar
   reenvío" ni "descartar cambio local" como acciones automáticas.
+
+### Endurecimiento de seguridad y UI (posterior a M5)
+
+- **Token/URL cifrados en reposo**: `sync/SincronizacionPreferencias.kt`
+  usa `EncryptedSharedPreferences` (`androidx.security:security-crypto`,
+  clave maestra AES-256 en el Android Keystore) en vez de SharedPreferences
+  en claro; al guardar se purga además el archivo en claro de versiones
+  previas del scaffold. Si el Keystore falla, la política es *fail closed*:
+  no se persiste nada y el worker periódico se omite (nunca se degrada a
+  almacenamiento sin cifrar).
+- **HTTPS obligatorio hacia ArcGIS**: `sync/ArcGisRestClient.kt` rechaza en
+  el constructor cualquier URL de Feature Service que no sea `https://`
+  (el token viaja en cada request; Android ya bloquea cleartext por defecto
+  desde API 28, esto lo hace explícito y con mensaje claro en la UI).
+- **Validación del `GlobalID` interpolado en `where`**:
+  `obtenerObjectIdPorGlobalId` solo admite el alfabeto de un GUID de
+  ArcGIS (hex, guiones, llaves) antes de interpolarlo en la cláusula
+  `where` del endpoint `query`, cerrando cualquier vía de inyección.
+- **FIFO explícito en la cola**: `ColaSincronizacionRepository.listarPendientes`
+  ordena por id de inserción, garantizando que una edición posterior de una
+  entidad nunca se envíe antes que su alta.
+- **Tema propio + navegación**: nuevo `ui/theme/Tema.kt` (Material 3 con
+  paleta institucional aproximada de CNEL EP, variantes clara y oscura),
+  `Scaffold` con `TopAppBar` y flecha "volver al mapa" en todas las
+  pantallas secundarias, `BackHandler` para que el botón atrás del sistema
+  regrese al mapa en vez de cerrar la app, y botones flotantes del mapa con
+  íconos Material (`Refresh`/`Add`/`Check`) y `contentDescription` de
+  accesibilidad en lugar de glifos de texto.
 
 ## Limitación conocida de este entorno (sandbox de desarrollo)
 
