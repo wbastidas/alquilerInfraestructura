@@ -67,7 +67,8 @@ object GeoPackageProvider {
     ) {
         if (geoPackage.isFeatureTable(nombreTabla)) return
 
-        val proyeccion = ProjectionFactory.getProjection(SRS_WGS84)
+        // getProjection recibe long; la constante EPSG es int en Java.
+        val proyeccion = ProjectionFactory.getProjection(SRS_WGS84.toLong())
         val srs: SpatialReferenceSystem = geoPackage.spatialReferenceSystemDao.getOrCreate(proyeccion)
 
         val geometryColumns = GeometryColumns()
