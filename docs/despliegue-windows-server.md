@@ -98,7 +98,7 @@ reales del entorno de producción:
   python -c "import os,base64; print(base64.urlsafe_b64encode(os.urandom(32)).decode())"
   ```
 
-- `CORS_ORIGENS`: el(los) dominio(s) HTTPS público(s) reales (nunca `*`).
+- `CORS_ORIGENES`: el(los) dominio(s) HTTPS público(s) reales (nunca `*`).
 - `LDAP_*`: datos del Active Directory institucional (ver
   `TODO: confirmar con cliente` en `app/auth/ldap_client.py` sobre el
   mapeo de OU/grupos — pendiente de confirmación con CNEL EP).
