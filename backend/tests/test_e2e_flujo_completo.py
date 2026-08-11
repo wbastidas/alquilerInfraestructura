@@ -663,3 +663,52 @@ def test_alcance_por_rol_en_el_flujo(cliente_api: TestClient, db_session: Sessio
     # Sin token no se accede a nada.
     assert cliente_api.get(f"{API}/solicitudes").status_code == 401
     assert gye_id  # el escenario se construyó sobre la UN de Guayaquil
+
+
+def test_expediente_cerrado_no_admite_nuevos_documentos(
+    cliente_api: TestClient, db_session: Session, escenario
+):
+    """Una solicitud ya decidida no acepta cargas: el checklist es el sustento
+    de esa decisión (§11) y alterarlo rompería la trazabilidad del workflow."""
+    operadora_id = escenario["operadora"].id
+    proveedor = _token(cliente_api, "proveedor")
+    tecnico = _token(cliente_api, "gye_tecnico")
+
+    respuesta = cliente_api.post(
+        f"{API}/solicitudes",
+        headers=proveedor,
+        json={
+            "cable_operadora_id": operadora_id,
+            "tipo": "NUEVO_CONTRATO",
+            "cobertura": "LOCAL",
+            "postes_solicitados": 10,
+        },
+    )
+    solicitud_id = respuesta.json()["id"]
+
+    def _subir():
+        return cliente_api.post(
+            f"{API}/documentos",
+            headers=proveedor,
+            data={"solicitud_id": solicitud_id, "tipo_documento": "RUC"},
+            files={"archivo": ("ruc.pdf", PDF_FICTICIO, "application/pdf")},
+        )
+
+    # En BORRADOR se arma el expediente: la carga es válida.
+    assert _subir().status_code == 201
+
+    cliente_api.post(f"{API}/solicitudes/{solicitud_id}/enviar", headers=proveedor)
+    # También durante el workflow, para subsanar lo que pida el revisor.
+    assert _subir().status_code == 201
+
+    # Rechazada: expediente cerrado.
+    respuesta = cliente_api.post(
+        f"{API}/solicitudes/{solicitud_id}/decidir",
+        headers=tecnico,
+        json={"estado": "RECHAZADO", "comentario": "No cumple requisitos técnicos."},
+    )
+    assert respuesta.json()["estado"] == "RECHAZADA"
+
+    respuesta = _subir()
+    assert respuesta.status_code == 409
+    assert "no admite" in respuesta.json()["detail"].lower()

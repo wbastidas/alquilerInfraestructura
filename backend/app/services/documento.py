@@ -19,11 +19,20 @@ from sqlalchemy.orm import Session
 from app.auth.deps import UsuarioContexto
 from app.core.checklist import TIPOS_CHECKLIST_SOLICITUD
 from app.core.config import obtener_configuracion
-from app.core.exceptions import PermisoDenegado, RecursoNoEncontrado
+from app.core.exceptions import PermisoDenegado, RecursoNoEncontrado, TransicionInvalida
 from app.models.documento import Documento
-from app.models.enums import EntidadTipoDocumento, EstadoValidacionDocumento, TipoDocumento
+from app.models.enums import (
+    EntidadTipoDocumento,
+    EstadoSolicitud,
+    EstadoValidacionDocumento,
+    TipoDocumento,
+)
 from app.schemas.documento import DocumentoValidar
 from app.services import solicitud as solicitud_servicio
+
+# Estados en los que la solicitud ya fue decidida y su expediente queda cerrado.
+# BORRADOR y OBSERVADA sí admiten cargas: son las etapas de armado y subsanación.
+_ESTADOS_SOLICITUD_CERRADA = {EstadoSolicitud.FINALIZADA, EstadoSolicitud.RECHAZADA}
 
 _EXTENSIONES_PERMITIDAS: dict[str, set[str]] = {
     ".pdf": {"application/pdf"},
@@ -74,7 +83,15 @@ def subir_para_solicitud(
     usuario_actual: UsuarioContexto,
 ) -> Documento:
     """Carga un documento del checklist (§11) asociado a una Solicitud."""
-    solicitud_servicio.obtener(db, solicitud_id, usuario_actual)  # valida acceso y existencia
+    solicitud = solicitud_servicio.obtener(db, solicitud_id, usuario_actual)  # valida acceso
+    # Una solicitud ya decidida no admite nuevos documentos: el checklist es el
+    # sustento de esa decisión (§11) y alterarlo después rompería la trazabilidad
+    # de lo que efectivamente revisó y aprobó cada etapa del workflow (§8).
+    if solicitud.estado in _ESTADOS_SOLICITUD_CERRADA:
+        raise TransicionInvalida(
+            f"La solicitud está {solicitud.estado.value}: su expediente documental ya no admite "
+            "cargas."
+        )
     nombre_saneado = _sanitizar_nombre(archivo.filename or "archivo")
     _validar_archivo(nombre_saneado, archivo.content_type or "", len(contenido))
 

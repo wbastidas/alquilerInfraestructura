@@ -228,3 +228,8 @@ body {
 .insignia-severidad-critica {
   background: #c0392b;
 }
+
+/* Texto secundario, para datos ausentes o no aplicables. */
+.texto-tenue {
+  color: #6b7280;
+}

@@ -129,6 +129,9 @@ export function DetalleSolicitud() {
   const puedeEnviar = solicitud.estado === "BORRADOR";
   const puedeReenviar = solicitud.estado === "OBSERVADA";
   const puedeDecidir = !esProveedor && ETAPAS_ACTIVAS.includes(solicitud.estado as EtapaAutorizacion);
+  // Una solicitud ya decidida cierra su expediente documental: el checklist es
+  // el sustento de esa decisión y el backend rechaza nuevas cargas (§11).
+  const expedienteCerrado = solicitud.estado === "FINALIZADA" || solicitud.estado === "RECHAZADA";
 
   const documentoPorTipo = (tipo: TipoDocumento) =>
     documentos?.find((documento) => documento.tipo_documento === tipo);
@@ -261,10 +264,14 @@ export function DetalleSolicitud() {
                 <td>{item.estado_validacion}</td>
                 <td>
                   {!item.documento_id ? (
-                    <input
-                      type="file"
-                      onChange={(evento) => manejarArchivoSeleccionado(item.tipo_documento, evento)}
-                    />
+                    expedienteCerrado ? (
+                      <span className="texto-tenue">No entregado</span>
+                    ) : (
+                      <input
+                        type="file"
+                        onChange={(evento) => manejarArchivoSeleccionado(item.tipo_documento, evento)}
+                      />
+                    )
                   ) : (
                     <>
                       {documento && (
