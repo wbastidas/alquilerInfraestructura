@@ -15,6 +15,7 @@ from app.core.exceptions import (
 )
 from app.models.alquiler_anual import AlquilerAnual
 from app.models.cable_operadora import CableOperadora
+from app.models.catalogo_canon import CatalogoCanon
 from app.models.contrato import Contrato
 from app.models.enums import (
     CoberturaGeografica,
@@ -23,11 +24,14 @@ from app.models.enums import (
     EstadoPago,
     MetodoPago,
     TipoPago,
+    TipoZona,
 )
 from app.models.unidad_negocio import UnidadNegocio
 from app.models.usuario import Usuario
 from app.models.rol import Rol
+from app.schemas.alquiler_anual import AlquilerAnualActualizar, PostePorZonaCrear
 from app.schemas.pago import FacturaCrear, PagoCrear
+from app.services import alquiler_anual as alquiler_anual_servicio
 from app.services import pago as servicio
 
 from tests.conftest import contexto_de
@@ -451,3 +455,88 @@ def test_reporte_morosidad_incluye_solo_vencidas_con_saldo(db_session: Session, 
 
     assert len(reporte) == 1
     assert reporte[0].dias_mora == 5
+
+
+def test_el_pago_actualiza_la_recaudacion_del_alquiler_anual_neto_de_iva(
+    db_session: Session, escenario
+):
+    """Regresión: el cobro debe reflejarse en el alquiler anual (§6.6), fuente
+    de los montos del dashboard consolidado (§7.2), descontando el IVA que no
+    es ingreso por arriendo sino tributo recaudado para el SRI."""
+    operadora, contrato, alquiler, usuario_un = escenario
+    # El canon facturado sale del desglose por zona (§6.6): 100 postes × 10.00.
+    db_session.add(
+        CatalogoCanon(
+            tipo_zona=TipoZona.CAPITAL_PROVINCIAL,
+            valor=Decimal("10.00"),
+            vigente_desde=date(date.today().year, 1, 1),
+        )
+    )
+    db_session.commit()
+    alquiler_con_zonas = alquiler_anual_servicio.actualizar(
+        db_session,
+        alquiler.id,
+        AlquilerAnualActualizar(
+            postes_por_zona=[
+                PostePorZonaCrear(
+                    provincia="Guayas",
+                    canton="Guayaquil",
+                    tipo_zona=TipoZona.CAPITAL_PROVINCIAL,
+                    cantidad_postes=100,
+                )
+            ]
+        ),
+        usuario_un,
+    )
+    assert alquiler_con_zonas.monto_facturado == Decimal("1000.00")
+
+    factura = servicio.crear_factura(
+        db_session,
+        FacturaCrear(
+            cable_operadora_id=operadora.id,
+            contrato_id=contrato.id,
+            alquiler_anual_id=alquiler.id,
+            numero_factura="FAC-IVA-001",
+            fecha_emision=date.today(),
+            fecha_vencimiento=date.today() + timedelta(days=30),
+            monto=Decimal("1000.00"),
+            iva=Decimal("150.00"),
+        ),
+        usuario_un,
+    )
+
+    # Se cobra la mitad del total facturado (1150 → 575).
+    servicio.registrar_pago(
+        db_session,
+        PagoCrear(
+            factura_id=factura.id,
+            monto=Decimal("575.00"),
+            tipo=TipoPago.PARCIAL,
+            metodo=MetodoPago.TRANSFERENCIA,
+            fecha_pago=date.today(),
+        ),
+        usuario_un,
+    )
+
+    db_session.refresh(alquiler)
+    # 575 × (1000/1150) = 500.00 de canon; el resto (75) es IVA.
+    assert alquiler.monto_recaudado == Decimal("500.00")
+    assert alquiler.monto_pendiente_recaudar == Decimal("500.00")
+    assert alquiler.estado_pago == EstadoPago.PARCIAL
+
+    servicio.registrar_pago(
+        db_session,
+        PagoCrear(
+            factura_id=factura.id,
+            monto=Decimal("575.00"),
+            tipo=TipoPago.TOTAL,
+            metodo=MetodoPago.TRANSFERENCIA,
+            fecha_pago=date.today(),
+        ),
+        usuario_un,
+    )
+
+    db_session.refresh(alquiler)
+    assert alquiler.monto_recaudado == Decimal("1000.00")
+    assert alquiler.monto_pendiente_recaudar == Decimal("0.00")
+    assert alquiler.estado_pago == EstadoPago.COMPLETO

@@ -27,6 +27,7 @@ from app.models.contrato import Contrato
 from app.models.enums import EstadoFactura
 from app.models.pago import Factura, Pago
 from app.schemas.pago import FacturaCrear, PagoCrear
+from app.services import alquiler_anual as alquiler_anual_servicio
 
 _CARGA_FACTURA = (selectinload(Factura.contrato), selectinload(Factura.pagos))
 
@@ -144,6 +145,10 @@ def registrar_pago(db: Session, datos: PagoCrear, usuario_actual: UsuarioContext
     )
     factura.pagos.append(pago)
     _recalcular_estado_factura(factura)
+    # El cobro debe reflejarse también en el alquiler anual (§6.6), que es la
+    # fuente de los montos del dashboard consolidado (§7.2).
+    db.flush()
+    alquiler_anual_servicio.sincronizar_recaudacion(db, factura.alquiler_anual_id)
     db.commit()
     db.refresh(pago)
     return pago
