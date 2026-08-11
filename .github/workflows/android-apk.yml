@@ -34,6 +34,17 @@ jobs:
       # El Android SDK viene preinstalado en los runners ubuntu-latest
       # (ANDROID_HOME configurado y licencias aceptadas); AGP descarga las
       # plataformas/build-tools que falten.
+      - name: Pruebas unitarias (JVM)
+        run: ./gradlew --no-daemon testDebugUnitTest
+
+      - name: Publicar reporte de pruebas
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: reporte-pruebas-unitarias
+          path: mobile/android/app/build/reports/tests/testDebugUnitTest
+          if-no-files-found: ignore
+
       - name: Compilar APK debug
         run: ./gradlew --no-daemon assembleDebug
 

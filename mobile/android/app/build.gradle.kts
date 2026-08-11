@@ -44,6 +44,14 @@ android {
             excludes += "/META-INF/{AL2.0,LGPL2.1}"
         }
     }
+
+    testOptions {
+        unitTests {
+            // Evita "Method ... not mocked" si una prueba roza una clase del
+            // android.jar por un camino indirecto.
+            isReturnDefaultValues = true
+        }
+    }
 }
 
 dependencies {
@@ -103,4 +111,12 @@ dependencies {
 
     debugImplementation("androidx.compose.ui:ui-tooling")
     debugImplementation("androidx.compose.ui:ui-test-manifest")
+
+    // Pruebas unitarias en JVM (sin emulador) de la lógica pura: validaciones
+    // del cliente ArcGIS, estilo del mapa offline y candado de sincronización.
+    testImplementation("junit:junit:4.13.2")
+    testImplementation("org.jetbrains.kotlinx:kotlinx-coroutines-test:1.8.1")
+    // Implementación real de org.json: la del android.jar es un stub que lanza
+    // excepción al invocarse desde una prueba unitaria de JVM.
+    testImplementation("org.json:json:20240303")
 }
