@@ -17,14 +17,19 @@ from sqlalchemy import func, select
 from sqlalchemy.orm import Session, selectinload
 
 from app.auth.deps import UsuarioContexto
+from app.core.checklist import TIPOS_CHECKLIST_SOLICITUD
 from app.core.exceptions import PermisoDenegado, RecursoNoEncontrado, TransicionInvalida
 from app.models.autorizacion import Autorizacion
 from app.models.cable_operadora import CableOperadora
+from app.models.contrato import Contrato
+from app.models.documento import Documento
 from app.models.enums import (
     CoberturaGeografica,
     DirigidaA,
+    EntidadTipoDocumento,
     EstadoAutorizacion,
     EstadoSolicitud,
+    EstadoValidacionDocumento,
     EtapaAutorizacion,
     TipoSolicitud,
 )
@@ -91,6 +96,22 @@ def _resolver_dirigida_a(datos: SolicitudCrear) -> DirigidaA:
     return DirigidaA.GERENTE_GENERAL
 
 
+def _checklist_completo(db: Session, solicitud_id: int) -> bool:
+    """§11: la solicitud no avanza a APROBACION_GERENCIAL sin cumplimiento documental al 100%."""
+    documentos = db.scalars(
+        select(Documento).where(
+            Documento.entidad_tipo == EntidadTipoDocumento.SOLICITUD,
+            Documento.entidad_id == solicitud_id,
+        )
+    )
+    validados = {
+        d.tipo_documento
+        for d in documentos
+        if d.estado_validacion == EstadoValidacionDocumento.VALIDADO
+    }
+    return all(tipo in validados for tipo in TIPOS_CHECKLIST_SOLICITUD)
+
+
 def listar(db: Session, usuario_actual: UsuarioContexto) -> list[Solicitud]:
     query = select(Solicitud).options(*_CARGA_RELACIONES).order_by(Solicitud.fecha_creacion.desc())
     if usuario_actual.es_matriz_o_superadmin:
@@ -121,6 +142,13 @@ def crear(db: Session, datos: SolicitudCrear, usuario_actual: UsuarioContexto) -
     elif not usuario_actual.es_matriz_o_superadmin:
         if usuario_actual.unidad_negocio_id != operadora.unidad_negocio_id:
             raise PermisoDenegado("No tiene acceso a registros de otra Unidad de Negocio.")
+
+    if datos.contrato_id is not None:
+        contrato = db.get(Contrato, datos.contrato_id)
+        if contrato is None:
+            raise RecursoNoEncontrado("Contrato no encontrado.")
+        if contrato.cable_operadora_id != operadora.id:
+            raise ValueError("El contrato no corresponde a la operadora indicada.")
 
     hoy = date.today()
     solicitud = Solicitud(
@@ -202,6 +230,15 @@ def decidir(
         raise TransicionInvalida(
             f"La solicitud en estado {solicitud.estado.value} no admite decisiones de workflow."
         ) from exc
+
+    if (
+        datos.estado == EstadoAutorizacion.APROBADO
+        and etapa_actual == EtapaAutorizacion.REVISION_TECNICA
+        and not _checklist_completo(db, solicitud.id)
+    ):
+        raise TransicionInvalida(
+            "No se puede avanzar a Aprobación Gerencial sin cumplimiento documental al 100% (§11)."
+        )
 
     db.add(
         Autorizacion(

@@ -11,7 +11,8 @@ from app.auth.deps import UsuarioContexto
 from app.core.exceptions import RecursoDuplicado, RecursoNoEncontrado
 from app.models.alquiler_anual import AlquilerAnual, PostePorZona
 from app.models.catalogo_canon import CatalogoCanon
-from app.models.enums import EstadoPago
+from app.models.enums import EstadoFactura, EstadoPago
+from app.models.pago import Factura
 from app.schemas.alquiler_anual import (
     AlquilerAnualActualizar,
     AlquilerAnualCrear,
@@ -58,13 +59,63 @@ def _recalcular_totales(alquiler: AlquilerAnual) -> None:
     alquiler.monto_facturado = sum(
         (zona.subtotal for zona in alquiler.postes_por_zona), Decimal("0")
     )
-    alquiler.monto_pendiente_recaudar = alquiler.monto_facturado - recaudado
+    # Un saldo "por recaudar" no puede ser negativo: si se cobró de más (nota de
+    # crédito pendiente, pago duplicado), lo pendiente es cero, no un negativo
+    # que restaría del consolidado de la UN en el dashboard (§7.2).
+    alquiler.monto_pendiente_recaudar = max(
+        Decimal("0"), alquiler.monto_facturado - recaudado
+    )
     if recaudado <= 0:
         alquiler.estado_pago = EstadoPago.PENDIENTE
     elif recaudado >= alquiler.monto_facturado:
         alquiler.estado_pago = EstadoPago.COMPLETO
     else:
         alquiler.estado_pago = EstadoPago.PARCIAL
+
+
+def sincronizar_recaudacion(db: Session, alquiler_anual_id: int) -> AlquilerAnual | None:
+    """Refleja en el alquiler anual lo efectivamente cobrado por sus facturas (§6.6, §7.4).
+
+    Sin esto, `monto_recaudado`/`monto_pendiente_recaudar`/`estado_pago` quedan
+    congelados en su valor inicial aunque las facturas se paguen, y el dashboard
+    consolidado (§7.2) —que lee esos campos— reporta recaudación cero.
+
+    Los pagos se contabilizan **netos de IVA**, en proporción al peso del canon
+    dentro del total de cada factura: `monto_facturado` es el canon calculado
+    desde el catálogo (§6.12), sin impuestos, así que sumar el pago bruto haría
+    aparecer un pendiente negativo. El IVA es un tributo que se recauda para el
+    SRI, no ingreso por arriendo de infraestructura.
+
+    Las facturas ANULADAS no aportan recaudación.
+    """
+    alquiler = db.scalar(
+        select(AlquilerAnual)
+        .options(*_CARGA_RELACIONES)
+        .where(AlquilerAnual.id == alquiler_anual_id)
+    )
+    if alquiler is None:
+        return None
+
+    facturas = db.scalars(
+        select(Factura).where(
+            Factura.alquiler_anual_id == alquiler_anual_id,
+            Factura.estado != EstadoFactura.ANULADA,
+        )
+    ).all()
+
+    recaudado = Decimal("0")
+    for factura in facturas:
+        pagado = sum((pago.monto for pago in factura.pagos), Decimal("0"))
+        if pagado <= 0:
+            continue
+        total = factura.total or Decimal("0")
+        # Proporción del pago que corresponde al canon (el resto es IVA).
+        proporcion_canon = (factura.monto / total) if total > 0 else Decimal("1")
+        recaudado += pagado * proporcion_canon
+
+    alquiler.monto_recaudado = recaudado.quantize(Decimal("0.01"))
+    _recalcular_totales(alquiler)
+    return alquiler
 
 
 def listar(db: Session, usuario_actual: UsuarioContexto) -> list[AlquilerAnual]:

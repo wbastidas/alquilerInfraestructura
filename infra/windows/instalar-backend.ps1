@@ -60,7 +60,7 @@ if (-not (Test-Path $rutaEnv)) {
     Write-Host "==> No existe backend\.env: copiando desde .env.example." -ForegroundColor Yellow
     Copy-Item $rutaEnvEjemplo $rutaEnv
     Write-Host "    IMPORTANTE: edite '$rutaEnv' con los valores reales (BD, JWT_SECRET_KEY," -ForegroundColor Yellow
-    Write-Host "    AES_MASTER_KEY, LDAP, CORS_ORIGENS) antes de continuar." -ForegroundColor Yellow
+    Write-Host "    AES_MASTER_KEY, LDAP, CORS_ORIGENES) antes de continuar." -ForegroundColor Yellow
     Write-Host "    Luego proteja el archivo con ACL restrictivas (ver paso 'Asegurar .env' abajo)." -ForegroundColor Yellow
 }
 

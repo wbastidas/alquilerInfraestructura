@@ -3,6 +3,7 @@ export interface UsuarioContexto {
   username: string;
   rol: string;
   unidadNegocioId: number | null;
+  cableOperadoraId: number | null;
   tipoCuenta: string;
 }
 
@@ -11,6 +12,7 @@ export interface PayloadAccessToken {
   username: string;
   rol: string;
   unidad_negocio_id: number | null;
+  cable_operadora_id: number | null;
   tipo_cuenta: string;
   tipo_token: string;
   exp: number;

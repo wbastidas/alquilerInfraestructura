@@ -20,6 +20,7 @@ function usuarioDesdeAccessToken(accessToken: string): UsuarioContexto {
     username: payload.username,
     rol: payload.rol,
     unidadNegocioId: payload.unidad_negocio_id,
+    cableOperadoraId: payload.cable_operadora_id,
     tipoCuenta: payload.tipo_cuenta,
   };
 }

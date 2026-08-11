@@ -17,11 +17,17 @@ from app.core.exceptions import (
 from app.jobs.scheduler import crear_scheduler
 from app.middlewares.rate_limit import limiter
 from app.middlewares.security_headers import CabecerasSeguridadMiddleware
+from app.routers import alertas as alertas_router
 from app.routers import alquileres_anuales as alquileres_anuales_router
 from app.routers import auth as auth_router
 from app.routers import catalogo_canon as catalogo_canon_router
 from app.routers import contratos as contratos_router
+from app.routers import dashboard as dashboard_router
+from app.routers import documentos as documentos_router
+from app.routers import novedades as novedades_router
 from app.routers import operadoras as operadoras_router
+from app.routers import pagos as pagos_router
+from app.routers import roles as roles_router
 from app.routers import solicitudes as solicitudes_router
 from app.routers import unidades_negocio as unidades_negocio_router
 from app.routers import usuarios as usuarios_router
@@ -78,13 +84,19 @@ app.add_middleware(
 
 PREFIJO_API = "/api/v1"
 app.include_router(auth_router.router, prefix=PREFIJO_API)
+app.include_router(alertas_router.router, prefix=PREFIJO_API)
 app.include_router(unidades_negocio_router.router, prefix=PREFIJO_API)
+app.include_router(roles_router.router, prefix=PREFIJO_API)
 app.include_router(usuarios_router.router, prefix=PREFIJO_API)
 app.include_router(operadoras_router.router, prefix=PREFIJO_API)
 app.include_router(contratos_router.router, prefix=PREFIJO_API)
 app.include_router(catalogo_canon_router.router, prefix=PREFIJO_API)
 app.include_router(alquileres_anuales_router.router, prefix=PREFIJO_API)
 app.include_router(solicitudes_router.router, prefix=PREFIJO_API)
+app.include_router(documentos_router.router, prefix=PREFIJO_API)
+app.include_router(pagos_router.router, prefix=PREFIJO_API)
+app.include_router(novedades_router.router, prefix=PREFIJO_API)
+app.include_router(dashboard_router.router, prefix=PREFIJO_API)
 
 
 @app.get("/api/v1/salud", tags=["salud"])

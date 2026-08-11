@@ -1,0 +1,3 @@
+## Copiar como local.properties (no se versiona) y ajustar la ruta al SDK
+## de Android instalado localmente.
+sdk.dir=/home/usuario/Android/Sdk

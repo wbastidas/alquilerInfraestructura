@@ -6,6 +6,7 @@ export function Layout() {
   const { usuario, salir } = useAuth();
 
   const esSoloLectura = usuario?.rol === "MATRIZ_CONSULTA";
+  const esProveedor = usuario?.rol === "PROVEEDOR";
 
   return (
     <div className="diseno-app">
@@ -17,6 +18,13 @@ export function Layout() {
           </NavLink>
           <NavLink to="/operadoras">Operadoras</NavLink>
           <NavLink to="/contratos">Contratos</NavLink>
+          {!esProveedor && <NavLink to="/alquileres-anuales">Alquileres</NavLink>}
+          {!esProveedor && <NavLink to="/canon">Canon</NavLink>}
+          <NavLink to="/facturas">Facturas</NavLink>
+          <NavLink to="/novedades">Novedades</NavLink>
+          <NavLink to="/solicitudes">Solicitudes</NavLink>
+          {!esProveedor && <NavLink to="/alertas">Alertas</NavLink>}
+          {!esProveedor && <NavLink to="/usuarios">Usuarios</NavLink>}
         </nav>
         <div className="usuario-actual">
           {esSoloLectura && <span className="insignia-solo-lectura">Solo lectura (Matriz)</span>}

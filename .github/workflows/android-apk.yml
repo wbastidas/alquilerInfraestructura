@@ -1,0 +1,57 @@
+name: APK Android (SGAIE Móvil)
+
+# Compila el APK debug del componente móvil y lo publica como artefacto
+# descargable del run, para probarlo en un dispositivo real. Se ejecuta en
+# GitHub Actions porque el sandbox de desarrollo no tiene Android SDK ni
+# acceso de red a dl.google.com (ver mobile/android/README.md).
+on:
+  push:
+    branches: [main, "claude/**"]
+    paths:
+      - "mobile/android/**"
+      - ".github/workflows/android-apk.yml"
+  workflow_dispatch:
+
+jobs:
+  apk-debug:
+    name: Compilar APK (debug)
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: mobile/android
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: JDK 17
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: "17"
+
+      - name: Cache de Gradle
+        uses: gradle/actions/setup-gradle@v4
+
+      # El Android SDK viene preinstalado en los runners ubuntu-latest
+      # (ANDROID_HOME configurado y licencias aceptadas); AGP descarga las
+      # plataformas/build-tools que falten.
+      - name: Pruebas unitarias (JVM)
+        run: ./gradlew --no-daemon testDebugUnitTest
+
+      - name: Publicar reporte de pruebas
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: reporte-pruebas-unitarias
+          path: mobile/android/app/build/reports/tests/testDebugUnitTest
+          if-no-files-found: ignore
+
+      - name: Compilar APK debug
+        run: ./gradlew --no-daemon assembleDebug
+
+      - name: Publicar APK como artefacto
+        uses: actions/upload-artifact@v4
+        with:
+          name: sgaie-movil-debug-apk
+          path: mobile/android/app/build/outputs/apk/debug/app-debug.apk
+          if-no-files-found: error
+          retention-days: 30

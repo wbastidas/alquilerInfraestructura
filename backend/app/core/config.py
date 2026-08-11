@@ -1,4 +1,5 @@
 """Configuración central de la aplicación, cargada desde variables de entorno (.env)."""
+
 from functools import lru_cache
 
 from pydantic_settings import BaseSettings, SettingsConfigDict
@@ -34,6 +35,10 @@ class Configuracion(BaseSettings):
     tamano_maximo_archivo_mb: int = 200
 
     tasa_interes_mora_anual: float = 0.1671
+
+    # Ventana de anticipación (§6.14) para generar alertas de vencimiento de
+    # contrato/póliza/título habilitante antes de la fecha real de vencimiento.
+    dias_anticipacion_alerta_vencimiento: int = 30
 
     @property
     def lista_cors_origenes(self) -> list[str]:
